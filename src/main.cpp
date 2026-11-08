@@ -97,7 +97,7 @@ namespace Versus {
                 m_waitingForGlobed = false;
                 showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "API DID NOT RESPOND",
                     "Globed is installed, but its API did not become available.",
-                    "Check that Globed 2.3.0+ is enabled, then restart Geometry Dash.");
+                    "Check that Globed 2.2.2 is enabled, then restart Geometry Dash.");
             }
         }
 
