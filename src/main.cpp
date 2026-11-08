@@ -135,7 +135,7 @@ namespace Versus {
                 if (!globedLoaded()) {
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED DID NOT LOAD",
                         "Geode has not finished loading the Globed mod.",
-                        "Check that Globed 2.2.2 is enabled and restart Geometry Dash.");
+                        "Check that Globed 2.3.0 or newer is enabled and restart Geometry Dash.");
                 } else {
                     auto mod = getGlobedMod();
                     auto version = mod ? "installed" : "unknown";
