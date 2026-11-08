@@ -8,8 +8,22 @@ namespace Versus {
     enum class Screen { Home, Local, Online };
     static Screen s_screen = Screen::Home;
 
+    static geode::Mod* getGlobedMod() {
+        return geode::Loader::get()->getInstalledMod("dankmeme.globed2");
+    }
+
+    static bool globedInstalled() {
+        return getGlobedMod() != nullptr;
+    }
+
+    static bool globedEnabled() {
+        auto* mod = getGlobedMod();
+        return mod && mod->isOrWillBeEnabled();
+    }
+
     static bool globedReady() {
-        return globed::api::available() && globed::api::net::isConnected();
+        return globedInstalled() && globedEnabled() &&
+            globed::api::available() && globed::api::net::isConnected();
     }
 
     class LobbyLayer final : public CCLayer {
@@ -95,8 +109,12 @@ namespace Versus {
             label("LOCAL MATCH",0.48f,{m_size.width/2,mid+69.f},{120,235,255});
             label("TWO-PLAYER / SHARED DEVICE",0.28f,{m_size.width/2,mid+43.f});
             label("ONLINE MATCH",0.48f,{m_size.width/2,mid-43.f},{220,150,255});
-            label(globedReady() ? "GLOBED CONNECTED" : "GLOBED NOT CONNECTED",0.30f,
-                {m_size.width/2,mid-68.f}, globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,175,145});
+            char const* globedStatus = !globedInstalled() ? "GLOBED NOT INSTALLED" :
+                (!globedEnabled() ? "GLOBED DISABLED" :
+                (!globed::api::available() ? "GLOBED LOADING" :
+                (globed::api::net::isConnected() ? "GLOBED CONNECTED" : "GLOBED NOT CONNECTED")));
+            label(globedStatus,0.30f,{m_size.width/2,mid-68.f},
+                globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,175,145});
 
             auto* menu=CCMenu::create(); menu->setPosition({0,0});
             menu->addChild(button("LOCAL PLAY",menu_selector(LobbyLayer::onLocal),{m_size.width/2,mid+12.f},"GJ_button_02.png",0.68f));
@@ -127,10 +145,22 @@ namespace Versus {
         }
         void onOnline(CCObject*) {
             s_screen=Screen::Online;
+            if (!globedInstalled()) {
+                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED NOT INSTALLED",
+                    "Install Globed 2.2.2 or newer to use online features.",
+                    "Versus Mode can still be used without Globed.");
+                return;
+            }
+            if (!globedEnabled()) {
+                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED IS DISABLED",
+                    "Enable Globed in the Geode mod list.",
+                    "Then reopen Versus Mode.");
+                return;
+            }
             if (!globed::api::available()) {
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED API NOT FOUND",
-                    "Install and enable Globed 2.2.2 or newer.",
-                    "Then connect to a Globed server.");
+                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED IS STILL LOADING",
+                    "Globed is installed and enabled, but its API is not ready yet.",
+                    "Reopen this screen after Globed finishes loading.");
                 return;
             }
             if (!globed::api::net::isConnected()) {
@@ -179,6 +209,9 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
             tile, this, menu_selector(VersusCreatorLayer::onVersus)
         );
         item->setID("versus-mode-button");
+        // CreatorLayer's stock grid tiles are rendered at 80% of atlas size.
+        // Apply the same scale to the native Versus tile, not a text ButtonSprite.
+        item->setScale(0.80f);
         // Match the Versus slot at the far right of the first row in CreatorLayer.
         item->setPosition({size.width * 0.788f, size.height * 0.808f});
         menu->addChild(item);
