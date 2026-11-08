@@ -135,14 +135,14 @@ namespace Versus {
                 if (!globedLoaded()) {
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED DID NOT LOAD",
                         "Geode has not finished loading the Globed mod.",
-                        "Check that Globed 2.2.2 is enabled and restart Geometry Dash.");
+                        "Enable Globed in Geode, then restart Geometry Dash.");
                 } else {
                     auto mod = getGlobedMod();
                     auto version = mod ? "installed" : "unknown";
                     log::warn("Versus: Globed loaded ({}), but its exported Soft Link API table was not returned.", version);
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
                         "Geode loaded Globed, but its exported API table was not returned.",
-                        "Fully restart Geometry Dash with Globed 2.2.2 enabled, then retry.");
+                        "Your Globed build may not export the Soft Link API. Use an upstream build that includes the API-export fix.");
                 }
             }
         }
@@ -325,16 +325,42 @@ namespace Versus {
 
         void onWorkshop(CCObject*) {
             showInfo("VERSUS WORKSHOP", "COMMUNITY CONTENT",
-                "WORKSHOP SERVICE NOT CONNECTED",
-                "The Geometry Dash-style Workshop entry is now in the lobby.",
-                "Publishing and browsing need a hosted catalog and upload service; no fake listings are shown.");
+                "WORKSHOP NOT AVAILABLE YET",
+                "This button now opens the Workshop status page.",
+                "A real catalog, safe uploads, moderation, and hosting are still needed.");
         }
 
         void onVoice(CCObject*) {
             s_screen = Screen::Online;
-            showInfo("VOICE CHAT", "GLOBED AUDIO", "GLOBED VOICE CHAT",
-                "Globed provides in-game voice chat and emotes.",
-                "Use Globed's in-level voice controls while playing together.");
+            basePage("VOICE CHAT", "VOICE SETUP AND SAFETY");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto mid = h * 0.57f;
+            addCard({w * 0.50f, mid}, {w * 0.86f, h * 0.34f}, {18,42,91,255});
+
+            char const* state = !globedInstalled() ? "GLOBED IS REQUIRED FOR VOICE" :
+                (!globedEnabled() ? "ENABLE GLOBED FIRST" :
+                (!globedLoaded() ? "WAITING FOR GLOBED" :
+                (!globedApiAvailable() ? "GLOBED API UNAVAILABLE" :
+                (!globedConnected() ? "CONNECT TO GLOBED" :
+                (globed::api::game::isActive() ? "VOICE CAN BE USED IN THIS LEVEL" :
+                    "JOIN A SHARED LEVEL FIRST")))));
+            label(state, 0.32f, {w * 0.50f, mid + h * 0.09f},
+                globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
+            label("Globed handles voice chat inside shared levels.", 0.27f,
+                {w * 0.50f, mid + h * 0.025f}, {225,235,250});
+            label("Set your push-to-talk and deafen keys in Globed settings.", 0.24f,
+                {w * 0.50f, mid - h * 0.035f}, {190,215,245});
+            label("Use mute / block / report controls when available.", 0.23f,
+                {w * 0.50f, mid - h * 0.085f}, {170,205,240});
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("ROOM STATUS", menu_selector(LobbyLayer::onRooms),
+                {w * 0.30f, 48.f}, "GJ_button_02.png", 0.43f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
+                {w * 0.70f, 48.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
         }
 
 
@@ -386,7 +412,7 @@ namespace Versus {
             s_screen=Screen::Online;
             if (!globedInstalled()) {
                 showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED NOT INSTALLED",
-                    "Install Globed 2.2.2 or newer to use online features.",
+                    "Install and enable Globed to use online features.",
                     "Versus Mode can still be used without Globed.");
                 return;
             }
