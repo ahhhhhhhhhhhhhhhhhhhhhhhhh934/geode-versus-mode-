@@ -89,8 +89,8 @@ namespace Versus {
             s_screen = Screen::Home;
             basePage("VERSUS MODE", "CHALLENGE A FRIEND  •  RACE FOR THE WIN");
             auto mid = m_size.height/2;
-            addCard({m_size.width/2,mid+47.f},{m_size.width*0.72f,94.f},{22,55,105,245});
-            addCard({m_size.width/2,mid-65.f},{m_size.width*0.72f,94.f},{70,36,104,245});
+            addCard({m_size.width/2,mid+52.f},{m_size.width*0.72f,94.f},{22,55,105,245});
+            addCard({m_size.width/2,mid-62.f},{m_size.width*0.72f,94.f},{70,36,104,245});
 
             label("LOCAL MATCH",0.48f,{m_size.width/2,mid+69.f},{120,235,255});
             label("TWO-PLAYER / SHARED DEVICE",0.28f,{m_size.width/2,mid+43.f});
@@ -99,11 +99,12 @@ namespace Versus {
                 {m_size.width/2,mid-68.f}, globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,175,145});
 
             auto* menu=CCMenu::create(); menu->setPosition({0,0});
-            menu->addChild(button("LOCAL PLAY",menu_selector(LobbyLayer::onLocal),{m_size.width/2,mid+5.f},"GJ_button_02.png",0.68f));
-            menu->addChild(button("ONLINE PLAY",menu_selector(LobbyLayer::onOnline),{m_size.width/2,mid-107.f},"GJ_button_05.png",0.68f));
-            menu->addChild(button("CLOSE",menu_selector(LobbyLayer::onClose),{m_size.width/2,42.f},"GJ_button_01.png",0.58f));
+            menu->addChild(button("LOCAL PLAY",menu_selector(LobbyLayer::onLocal),{m_size.width/2,mid+12.f},"GJ_button_02.png",0.68f));
+            menu->addChild(button("ONLINE PLAY",menu_selector(LobbyLayer::onOnline),{m_size.width/2,mid-101.f},"GJ_button_05.png",0.68f));
+            // Keep the close control in the upper-right corner, away from both match buttons.
+            menu->addChild(button("X",menu_selector(LobbyLayer::onClose),{m_size.width-34.f, m_size.height-30.f},"GJ_button_01.png",0.48f));
             m_page->addChild(menu,5);
-            label("BETA  •  v0.3.3",0.25f,{m_size.width/2,15.f},{130,150,190});
+            label("BETA  •  v0.3.8",0.25f,{m_size.width/2,15.f},{130,150,190});
         }
 
         void showInfo(char const* title, char const* subtitle, char const* status, char const* detail, char const* extra) {
