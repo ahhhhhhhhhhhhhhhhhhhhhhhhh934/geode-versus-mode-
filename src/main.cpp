@@ -7,6 +7,7 @@ using namespace geode::prelude;
 namespace Versus {
     enum class Screen { Home, Local, Online, Loading };
     static Screen s_screen = Screen::Home;
+    static bool s_globedLoadedSignal = false;
 
     static geode::Mod* getGlobedMod() {
         return geode::Loader::get()->getInstalledMod("dankmeme.globed2");
@@ -58,7 +59,6 @@ namespace Versus {
         CCSize m_size;
         CCLayer* m_page = nullptr;
         bool m_waitingForGlobed = false;
-        bool m_globedLoadedSignal = false;
         float m_globedWait = 0.f;
         float m_loadingPulse = 0.f;
         CCLabelBMFont* m_loadingLabel = nullptr;
@@ -78,7 +78,7 @@ namespace Versus {
                 float progress = std::min(m_globedWait / 12.f, 1.f);
                 m_loadingFill->setContentSize({m_size.width * 0.58f * progress, 9.f});
             }
-            if (m_globedLoadedSignal && globedLoaded() && globed::api::available()) {
+            if (s_globedLoadedSignal && globedLoaded() && globed::api::available()) {
                 m_waitingForGlobed = false;
                 if (globed::api::net::isConnected()) {
                     if (globed::api::room::isInRoom()) {
@@ -164,6 +164,9 @@ namespace Versus {
             // New dashboard layout: status header, two distinct mode panels,
             // and a compact bottom utility bar. This is a real layout change.
             addCard({m_size.width/2.f, mid+73.f}, {m_size.width*0.82f, 54.f}, {15, 37, 76, 255});
+            auto* headerEdge = CCLayerColor::create({255,220,90,255}, m_size.width*0.82f, 3.f);
+            headerEdge->setPosition({m_size.width*0.09f, mid+98.f});
+            m_page->addChild(headerEdge, 2);
             label("NETWORK STATUS", 0.25f, {m_size.width*0.30f, mid+83.f}, {145,190,245});
             char const* state = !globedInstalled() ? "GLOBED REQUIRED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
@@ -175,6 +178,12 @@ namespace Versus {
 
             addCard({m_size.width*0.30f, mid-13.f}, {m_size.width*0.40f, 116.f}, {20, 61, 105, 255});
             addCard({m_size.width*0.72f, mid-13.f}, {m_size.width*0.40f, 116.f}, {67, 38, 103, 255});
+            auto* localStripe = CCLayerColor::create({70,220,255,255}, 4.f, 116.f);
+            localStripe->setPosition({m_size.width*0.30f-m_size.width*0.20f, mid-71.f});
+            m_page->addChild(localStripe, 1);
+            auto* onlineStripe = CCLayerColor::create({205,125,255,255}, 4.f, 116.f);
+            onlineStripe->setPosition({m_size.width*0.72f-m_size.width*0.20f, mid-71.f});
+            m_page->addChild(onlineStripe, 1);
             label("LOCAL", 0.48f, {m_size.width*0.30f, mid+23.f}, {120,225,255});
             label("2 PLAYERS", 0.27f, {m_size.width*0.30f, mid-3.f}, {190,220,245});
             label("SAME DEVICE", 0.24f, {m_size.width*0.30f, mid-25.f}, {145,185,220});
@@ -188,12 +197,20 @@ namespace Versus {
                 {m_size.width*0.30f, mid-83.f}, "GJ_button_02.png", 0.54f));
             menu->addChild(button("ONLINE MATCH", menu_selector(LobbyLayer::onOnline),
                 {m_size.width*0.72f, mid-83.f}, "GJ_button_05.png", 0.54f));
+            menu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
+                {m_size.width*0.30f, 43.f}, "GJ_button_04.png", 0.48f));
             menu->addChild(button("VOICE CHAT", menu_selector(LobbyLayer::onVoice),
-                {m_size.width*0.30f, 43.f}, "GJ_button_01.png", 0.48f));
-            menu->addChild(button("CLOSE", menu_selector(LobbyLayer::onClose),
                 {m_size.width*0.72f, 43.f}, "GJ_button_01.png", 0.48f));
+
             m_page->addChild(menu, 5);
             label("VERSUS MODE  •  v0.4.4", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
+        }
+
+        void onWorkshop(CCObject*) {
+            showInfo("VERSUS WORKSHOP", "COMMUNITY CONTENT",
+                "WORKSHOP SERVICE NOT CONNECTED",
+                "The Geometry Dash-style Workshop entry is now in the lobby.",
+                "Publishing and browsing need a hosted catalog and upload service; no fake listings are shown.");
         }
 
         void onVoice(CCObject*) {
@@ -207,11 +224,11 @@ namespace Versus {
         void showGlobedLoading() {
             s_screen = Screen::Loading;
             m_waitingForGlobed = true;
-            m_globedLoadedSignal = globedLoaded();
+            s_globedLoadedSignal = globedLoaded();
             m_globedWait = 0.f;
             if (!m_globedLoadedSignal) {
-                globed::api::waitForGlobed([this] {
-                    m_globedLoadedSignal = true;
+                globed::api::waitForGlobed([] {
+                    s_globedLoadedSignal = true;
                 });
             }
             m_loadingPulse = 0.f;
