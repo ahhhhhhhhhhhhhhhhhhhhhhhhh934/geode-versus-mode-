@@ -72,8 +72,8 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
-            prevter/geode-sdk:ios-latest \
-            bash -lc "cmake -G Ninja -B build-ios -DCMAKE_BUILD_TYPE=Release && cmake --build build-ios"
+            ghcr.io/geode-sdk/geode:ios-5.11.1 \
+            bash -lc "cmake --preset ios --presets-file /docker/CMakePresets.json && cmake --build --preset ios --presets-file /docker/CMakePresets.json"
 
       - name: Upload iOS Geode package
         uses: actions/upload-artifact@v4
