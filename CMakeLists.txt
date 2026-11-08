@@ -11,9 +11,19 @@ if (NOT DEFINED ENV{GEODE_SDK})
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
-setup_geode_mod(${PROJECT_NAME})
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:>=2.3.0-beta.1)
 
-# Globed soft-link API headers are provided by the declared Geode dependency.
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}/geode-deps/dankmeme.globed2/include
+include(FetchContent)
+FetchContent_Declare(globed2_headers
+    GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
+    GIT_TAG main
+    GIT_SHALLOW TRUE
 )
+FetchContent_GetProperties(globed2_headers)
+if (NOT globed2_headers_POPULATED)
+    FetchContent_Populate(globed2_headers)
+endif()
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${globed2_headers_SOURCE_DIR}/include
+)
+
