@@ -101,28 +101,54 @@ namespace Versus {
 
         void showHome() {
             s_screen = Screen::Home;
-            basePage("VERSUS MODE", "CHALLENGE A FRIEND  •  RACE FOR THE WIN");
-            auto mid = m_size.height/2;
-            addCard({m_size.width/2,mid+52.f},{m_size.width*0.72f,94.f},{22,55,105,245});
-            addCard({m_size.width/2,mid-62.f},{m_size.width*0.72f,94.f},{70,36,104,245});
+            basePage("VERSUS // ARENA", "ONLINE COMPETITION  •  BUILT FOR GEOMETRY DASH");
+            auto mid = m_size.height / 2.f;
 
-            label("LOCAL MATCH",0.48f,{m_size.width/2,mid+69.f},{120,235,255});
-            label("TWO-PLAYER / SHARED DEVICE",0.28f,{m_size.width/2,mid+43.f});
-            label("ONLINE MATCH",0.48f,{m_size.width/2,mid-43.f},{220,150,255});
-            char const* globedStatus = !globedInstalled() ? "GLOBED NOT INSTALLED" :
+            // New dashboard layout: status header, two distinct mode panels,
+            // and a compact bottom utility bar. This is a real layout change.
+            addCard({m_size.width/2.f, mid+73.f}, {m_size.width*0.82f, 54.f}, {15, 37, 76, 255});
+            label("NETWORK STATUS", 0.25f, {m_size.width*0.30f, mid+83.f}, {145,190,245});
+            char const* state = !globedInstalled() ? "GLOBED REQUIRED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globed::api::available() ? "GLOBED LOADING" :
-                (globed::api::net::isConnected() ? "GLOBED CONNECTED" : "GLOBED NOT CONNECTED")));
-            label(globedStatus,0.30f,{m_size.width/2,mid-68.f},
-                globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,175,145});
+                (globed::api::net::isConnected() ? "ONLINE" : "OFFLINE")));
+            label(state, 0.34f, {m_size.width*0.69f, mid+62.f},
+                globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,185,130});
 
-            auto* menu=CCMenu::create(); menu->setPosition({0,0});
-            menu->addChild(button("LOCAL PLAY",menu_selector(LobbyLayer::onLocal),{m_size.width/2,mid+12.f},"GJ_button_02.png",0.68f));
-            menu->addChild(button("ONLINE PLAY",menu_selector(LobbyLayer::onOnline),{m_size.width/2,mid-101.f},"GJ_button_05.png",0.68f));
-            // Keep the close control in the upper-right corner, away from both match buttons.
-            menu->addChild(button("X",menu_selector(LobbyLayer::onClose),{m_size.width-34.f, m_size.height-30.f},"GJ_button_01.png",0.48f));
-            m_page->addChild(menu,5);
-            label("BETA  •  v0.3.8",0.25f,{m_size.width/2,15.f},{130,150,190});
+            addCard({m_size.width*0.30f, mid-13.f}, {m_size.width*0.40f, 116.f}, {20, 61, 105, 255});
+            addCard({m_size.width*0.72f, mid-13.f}, {m_size.width*0.40f, 116.f}, {67, 38, 103, 255});
+            label("LOCAL", 0.48f, {m_size.width*0.30f, mid+23.f}, {120,225,255});
+            label("2 PLAYERS", 0.27f, {m_size.width*0.30f, mid-3.f}, {190,220,245});
+            label("SAME DEVICE", 0.24f, {m_size.width*0.30f, mid-25.f}, {145,185,220});
+            label("ONLINE", 0.48f, {m_size.width*0.72f, mid+23.f}, {225,170,255});
+            label("GLOBED ROOMS", 0.27f, {m_size.width*0.72f, mid-3.f}, {220,195,245});
+            label("PLAY TOGETHER", 0.24f, {m_size.width*0.72f, mid-25.f}, {190,160,220});
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("LOCAL MATCH", menu_selector(LobbyLayer::onLocal),
+                {m_size.width*0.30f, mid-83.f}, "GJ_button_02.png", 0.54f));
+            menu->addChild(button("ONLINE MATCH", menu_selector(LobbyLayer::onOnline),
+                {m_size.width*0.72f, mid-83.f}, "GJ_button_05.png", 0.54f));
+            menu->addChild(button("VOICE CHAT", menu_selector(LobbyLayer::onVoice),
+                {m_size.width*0.30f, 43.f}, "GJ_button_01.png", 0.48f));
+            menu->addChild(button("CLOSE", menu_selector(LobbyLayer::onClose),
+                {m_size.width*0.72f, 43.f}, "GJ_button_01.png", 0.48f));
+            m_page->addChild(menu, 5);
+            label("VERSUS MODE  •  v0.4.0", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
+        }
+
+        void onVoice(CCObject*) {
+            s_screen = Screen::Online;
+#if defined(GEODE_IS_ANDROID) || defined(GEODE_IS_IOS)
+            showInfo("VOICE CHAT", "GLOBED AUDIO", "MOBILE MICROPHONE LIMIT",
+                "Globed voice playback is available, but mobile voice transmission",
+                "is not supported by the current official Globed release.");
+#else
+            showInfo("VOICE CHAT", "GLOBED AUDIO", "USE GLOBED VOICE CHAT",
+                "Globed includes its own in-level voice chat and audio controls.",
+                "Join the same level and configure voice chat in Globed settings.");
+#endif
         }
 
         void showInfo(char const* title, char const* subtitle, char const* status, char const* detail, char const* extra) {
