@@ -5,6 +5,52 @@
 using namespace geode::prelude;
 
 namespace Versus {
+    // Globed's stock wrapper caches a failed event-export lookup forever.
+    // Query the Geode event directly so a late-registered Globed API can be
+    // discovered on a later attempt instead of remaining permanently missing.
+    using GlobedGetRootTableFn = geode::Result<globed::RootApiTable*> (*)();
+
+    static globed::RootApiTable* getGlobedApiTable() {
+        GlobedGetRootTableFn getter = nullptr;
+        geode::Dispatch<GlobedGetRootTableFn*> event("dankmeme.globed2/getRootTable");
+        event.send(&getter);
+
+        if (!getter) {
+            return nullptr;
+        }
+
+        auto result = getter();
+        if (!result) {
+            log::warn("Versus: Globed getRootTable event responded, but returned an error.");
+            return nullptr;
+        }
+        return result.unwrap();
+    }
+
+    static bool globedApiAvailable() {
+        return getGlobedApiTable() != nullptr;
+    }
+
+    static bool globedConnected() {
+        auto* table = getGlobedApiTable();
+        return table && table->net && table->net->isConnected();
+    }
+
+    static bool globedInRoom() {
+        auto* table = getGlobedApiTable();
+        return table && table->room && table->room->isInRoom();
+    }
+
+    static uint32_t globedRoomId() {
+        auto* table = getGlobedApiTable();
+        return table && table->room ? table->room->getId() : 0;
+    }
+
+    static size_t globedPlayerCount() {
+        auto* table = getGlobedApiTable();
+        return table && table->game ? table->game->getPlayerCount() : 0;
+    }
+
     enum class Screen { Home, Local, Online, Loading };
     static Screen s_screen = Screen::Home;
 
@@ -28,8 +74,8 @@ namespace Versus {
     }
 
     static bool globedReady() {
-        return globedLoaded() && globed::api::available() &&
-            globed::api::net::isConnected();
+        return globedLoaded() && globedApiAvailable() &&
+            globedConnected();
     }
 
     class LobbyLayer final : public CCLayer {
@@ -86,12 +132,12 @@ namespace Versus {
                 float progress = std::min(m_globedWait / 12.f, 1.f);
                 m_loadingFill->setContentSize({m_size.width * 0.58f * progress, 9.f});
             }
-            if (globedLoaded() && globed::api::available()) {
+            if (globedLoaded() && globedApiAvailable()) {
                 m_waitingForGlobed = false;
-                if (globed::api::net::isConnected()) {
-                    if (globed::api::room::isInRoom()) {
-                        auto players = globed::api::game::getPlayerCount();
-                        auto roomId = globed::api::room::getId();
+                if (globedConnected()) {
+                    if (globedInRoom()) {
+                        auto players = globedPlayerCount();
+                        auto roomId = globedRoomId();
                         auto status = fmt::format("ROOM {}  •  {} PLAYERS", roomId, players);
                         showInfo("ONLINE VERSUS", "GLOBED ROOM READY", status.c_str(),
                             "Globed API is responding and your room is detected.",
@@ -195,8 +241,8 @@ namespace Versus {
             char const* network = !globedInstalled() ? "GLOBED REQUIRED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globed::api::available() ? "API WAITING" :
-                (globed::api::net::isConnected() ? "ONLINE" : "OFFLINE"))));
+                (!globedApiAvailable() ? "API WAITING" :
+                (globedConnected() ? "ONLINE" : "OFFLINE"))));
             label(network, 0.27f, {w * 0.75f, h - 82.f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
@@ -264,7 +310,7 @@ namespace Versus {
                 {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
             m_page->addChild(dockMenu, 5);
 
-            label("VERSUS MODE  •  v0.4.10", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.11", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void onHome(CCObject*) { showHome(); }
@@ -342,24 +388,24 @@ namespace Versus {
                     "Then reopen Versus Mode.");
                 return;
             }
-            if (!globedLoaded() || !globed::api::available()) {
+            if (!globedLoaded() || !globedApiAvailable()) {
                 showGlobedLoading();
                 return;
             }
-            if (!globed::api::net::isConnected()) {
+            if (!globedConnected()) {
                 showInfo("ONLINE VERSUS","GLOBED INTEGRATION","NOT CONNECTED",
                     "Globed is installed, but you are not connected.",
                     "Connect through Globed, then reopen this screen.");
                 return;
             }
-            if (!globed::api::room::isInRoom()) {
+            if (!globedInRoom()) {
                 showInfo("ONLINE VERSUS","GLOBED INTEGRATION","CONNECTED TO GLOBED",
                     "You are not inside a private room yet.",
                     "Join or create a Globed room, then return here.");
                 return;
             }
-            auto players = globed::api::game::getPlayerCount();
-            auto roomId = globed::api::room::getId();
+            auto players = globedPlayerCount();
+            auto roomId = globedRoomId();
             auto status = fmt::format("ROOM {}  •  {} PLAYERS", roomId, players);
             auto detail = std::string("Globed room detected. Player sync can use its event API.");
             showInfo("ONLINE VERSUS","GLOBED ROOM DETECTED",status.c_str(),
