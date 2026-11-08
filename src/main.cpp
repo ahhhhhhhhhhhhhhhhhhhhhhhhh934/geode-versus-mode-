@@ -1,5 +1,6 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/MenuLayer.hpp>
+#include <vector>
 
 using namespace geode::prelude;
 
@@ -12,6 +13,29 @@ namespace Versus {
         std::string roomCode;
     };
     static LobbyState s_lobby;
+    static std::vector<CCMenuItem*> s_disabledBackgroundItems;
+
+    static void disableMenuItems(CCNode* node) {
+        if (!node) return;
+        auto* children = node->getChildren();
+        if (!children) return;
+
+        for (unsigned int i = 0; i < children->count(); ++i) {
+            auto* child = static_cast<CCNode*>(children->objectAtIndex(i));
+            if (auto* item = typeinfo_cast<CCMenuItem*>(child)) {
+                item->setEnabled(false);
+                s_disabledBackgroundItems.push_back(item);
+            }
+            disableMenuItems(child);
+        }
+    }
+
+    static void restoreBackgroundButtons() {
+        for (auto* item : s_disabledBackgroundItems) {
+            if (item) item->setEnabled(true);
+        }
+        s_disabledBackgroundItems.clear();
+    }
 
     class LobbyLayer final : public CCLayer {
     public:
@@ -25,7 +49,9 @@ namespace Versus {
         bool init() override {
             if (!CCLayer::init()) return false;
             auto winSize = CCDirector::sharedDirector()->getWinSize();
-            this->addChild(CCLayerColor::create({8, 12, 34, 220}), -1);
+
+            // Dim the game screen while the lobby is open.
+            this->addChild(CCLayerColor::create({8, 12, 34, 235}), -1);
 
             auto* title = CCLabelBMFont::create("VERSUS MODE", "goldFont.fnt");
             title->setScale(0.8f);
@@ -37,9 +63,13 @@ namespace Versus {
             subtitle->setPosition({winSize.width / 2, winSize.height - 82.f});
             this->addChild(subtitle);
 
-            this->addChild(makeButton("LOCAL 1V1", menu_selector(LobbyLayer::onLocal), {winSize.width / 2, winSize.height / 2 + 35.f}));
-            this->addChild(makeButton("ONLINE 1V1", menu_selector(LobbyLayer::onOnline), {winSize.width / 2, winSize.height / 2 - 25.f}));
-            this->addChild(makeButton("BACK", menu_selector(LobbyLayer::onBack), {winSize.width / 2, 45.f}));
+            // CCMenu is required for the menu items to receive taps.
+            auto* menu = CCMenu::create();
+            menu->setPosition({0.f, 0.f});
+            menu->addChild(makeButton("LOCAL 1V1", menu_selector(LobbyLayer::onLocal), {winSize.width / 2, winSize.height / 2 + 35.f}));
+            menu->addChild(makeButton("ONLINE 1V1", menu_selector(LobbyLayer::onOnline), {winSize.width / 2, winSize.height / 2 - 25.f}));
+            menu->addChild(makeButton("BACK", menu_selector(LobbyLayer::onBack), {winSize.width / 2, 45.f}));
+            this->addChild(menu, 5);
 
             auto* note = CCLabelBMFont::create("ONLINE MATCHMAKING REQUIRES A SERVER", "chatFont.fnt");
             note->setScale(0.35f);
@@ -47,6 +77,11 @@ namespace Versus {
             note->setPosition({winSize.width / 2, 18.f});
             this->addChild(note);
             return true;
+        }
+
+        void keyBackClicked() override {
+            restoreBackgroundButtons();
+            this->removeFromParentAndCleanup(true);
         }
 
     private:
@@ -58,13 +93,16 @@ namespace Versus {
         }
         void onLocal(CCObject*) {
             s_lobby.type = MatchType::Local;
-            FLAlertLayer::create("LOCAL VERSUS", "Local lobby selected.<cr><cr>Next gameplay step: bind two independent input sources and spawn a second player in the active level. This starter does not yet implement a second controllable icon.", "OK")->show();
+            FLAlertLayer::create("LOCAL VERSUS", "Local lobby selected.<cr><cr>Two-player controls and race gameplay are still being developed.", "OK")->show();
         }
         void onOnline(CCObject*) {
             s_lobby.type = MatchType::Online;
-            FLAlertLayer::create("ONLINE VERSUS", "Online lobby selected.<cr><cr>Online races need a matchmaking/relay service to exchange room state and player progress. No server is configured yet.", "OK")->show();
+            FLAlertLayer::create("ONLINE VERSUS", "Online matchmaking needs a server and player synchronization. Those features are not implemented yet.", "OK")->show();
         }
-        void onBack(CCObject*) { this->removeFromParentAndCleanup(true); }
+        void onBack(CCObject*) {
+            restoreBackgroundButtons();
+            this->removeFromParentAndCleanup(true);
+        }
     };
 }
 
@@ -72,18 +110,34 @@ class $modify(VersusMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
         auto* bottomMenu = this->getChildByID("bottom-menu");
-        if (!bottomMenu) { log::warn("Versus Mode: main menu button container not found"); return true; }
+        if (!bottomMenu) {
+            log::warn("Versus Mode: main menu button container not found");
+            return true;
+        }
 
-        auto* sprite = ButtonSprite::create("VERSUS", 48, true, "goldFont.fnt", "GJ_button_01.png", 30.f, 0.7f);
-        auto* button = CCMenuItemSpriteExtra::create(sprite, this, menu_selector(VersusMenuLayer::onVersusPressed));
+        // Geometry Dash ships with its own unused Versus-mode button artwork.
+        auto* icon = CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png");
+        if (!icon) {
+            log::warn("Versus Mode: native Versus icon frame was not found; using a fallback button");
+            icon = ButtonSprite::create("VERSUS", 48, true, "goldFont.fnt", "GJ_button_01.png", 30.f, 0.7f);
+        } else {
+            icon->setScale(0.65f);
+        }
+
+        auto* button = CCMenuItemSpriteExtra::create(icon, this, menu_selector(VersusMenuLayer::onVersusPressed));
         button->setID("versus-mode-button");
         bottomMenu->addChild(button);
         bottomMenu->updateLayout();
         return true;
     }
+
     void onVersusPressed(CCObject*) {
+        Versus::disableMenuItems(this);
         auto* layer = Versus::LobbyLayer::create();
-        if (!layer) return;
+        if (!layer) {
+            Versus::restoreBackgroundButtons();
+            return;
+        }
         layer->setID("versus-lobby-layer");
         this->getParent()->addChild(layer, 100);
     }
