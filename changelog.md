@@ -1,3 +1,7 @@
+## v0.4.12
+- Replace custom Globed event dispatch with Globed's documented Soft Link API wrappers.
+- Declare Globed as an optional dependency and retry API lookup after it loads.
+
 # Changelog
 
 ## v0.3.0
