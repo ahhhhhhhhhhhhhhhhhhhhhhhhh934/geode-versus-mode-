@@ -226,7 +226,7 @@ namespace Versus {
             m_waitingForGlobed = true;
             s_globedLoadedSignal = globedLoaded();
             m_globedWait = 0.f;
-            if (!m_globedLoadedSignal) {
+            if (!s_globedLoadedSignal) {
                 globed::api::waitForGlobed([] {
                     s_globedLoadedSignal = true;
                 });
