@@ -1,14 +1,14 @@
 # Geode Versus Mode — Android build project
 
-Target: Geometry Dash 2.2081 / Geode SDK 5.11.2 / Android 64-bit.
+Target: Geometry Dash 2.2081 / Geode SDK latest stable / Android 64-bit.
 
 ## Current implementation status
 - Creator menu Versus entry: hooked into CreatorLayer (the Create/Saved/Scores/Quests screen).
 - Versus lobby screen: implemented in source.
 - Local 1v1: UI placeholder; independent player controls are not implemented.
 - Online 1v1: Globed status and room detection only; match protocol and synchronization are not implemented.
-- Voice chat: not implemented. Globed's audio API requires its full link API; the current Soft Link wrapper does not expose microphone/audio methods.
-- Workshop: not implemented; investigate Geode's mod portal/workshop integration separately.
+- Voice chat: not implemented; Globed's audio API needs a separate audio integration.
+- Workshop: not implemented; Geode mod portal integration remains a separate task.
 
 ## Build an actual .geode package
 This repository includes a GitHub Actions workflow at .github/workflows/build-android.yml. Open **Actions → Build Android Geode mod → Run workflow** to start an Android64 build. A successful run uploads the .geode package as the Versus-Mode-Android64 artifact.
@@ -20,3 +20,6 @@ geode build -p android64
 ```
 
 A compiled .geode file is not included until a build succeeds.
+
+
+Build pipeline notes: Android builds use the latest stable Geode SDK to avoid pinning a broken release metadata lookup. iOS builds run on macOS using the official Geode build action, not a nonexistent Docker image.
