@@ -1,5 +1,5 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/GJMoreGamesLayer.hpp>
+#include <Geode/modify/CreatorLayer.hpp>
 #include <globed/soft-link/Wrappers.hpp>
 
 using namespace geode::prelude;
@@ -156,25 +156,35 @@ namespace Versus {
     };
 }
 
-class $modify(VersusMoreGamesLayer, GJMoreGamesLayer) {
+// The screenshot's Create/Saved/Scores/Quests/Versus grid belongs to CreatorLayer,
+// not GJMoreGamesLayer. Add the clickable tile to that actual screen.
+class $modify(VersusCreatorLayer, CreatorLayer) {
     bool init() {
-        // GJMoreGamesLayer has no zero-argument init binding on Android 2.2081.
-        // Initialize its inherited dropdown layer with the expected title.
-        if (!GJDropDownLayer::init("More Games")) return false;
-        auto size=CCDirector::sharedDirector()->getWinSize();
-        auto* menu=CCMenu::create();
+        if (!CreatorLayer::init()) return false;
+
+        auto size = CCDirector::sharedDirector()->getWinSize();
+        auto* menu = CCMenu::create();
         menu->setID("versus-mode-grid-entry");
-        menu->setPosition({0.f,0.f});
-        auto* tile=ButtonSprite::create("VERSUS",86,true,"goldFont.fnt","GJ_button_02.png",58.f,0.8f);
-        auto* item=CCMenuItemSpriteExtra::create(tile,this,menu_selector(VersusMoreGamesLayer::onVersus));
+        menu->setPosition({0.f, 0.f});
+
+        auto* tile = ButtonSprite::create("VERSUS", 86, true, "goldFont.fnt",
+            "GJ_button_02.png", 58.f, 0.8f);
+        auto* item = CCMenuItemSpriteExtra::create(
+            tile, this, menu_selector(VersusCreatorLayer::onVersus)
+        );
         item->setID("versus-mode-button");
-        item->setPosition({size.width*0.788f,size.height*0.808f});
+        // Match the Versus slot at the far right of the first row in CreatorLayer.
+        item->setPosition({size.width * 0.788f, size.height * 0.808f});
         menu->addChild(item);
-        this->addChild(menu,100);
+        this->addChild(menu, 1000);
         return true;
     }
+
     void onVersus(CCObject*) {
-        auto* lobby=Versus::LobbyLayer::create();
-        if (lobby) { lobby->setID("versus-mode-lobby"); this->addChild(lobby,1000); }
+        auto* lobby = Versus::LobbyLayer::create();
+        if (lobby) {
+            lobby->setID("versus-mode-lobby");
+            this->addChild(lobby, 2000);
+        }
     }
 };
