@@ -106,9 +106,12 @@ namespace Versus {
                         "Geode has not finished loading the Globed mod.",
                         "Check that Globed 2.2.2 is enabled and restart Geometry Dash.");
                 } else {
-                    showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "API NOT AVAILABLE",
-                        "Globed loaded, but its Soft Link API is not available.",
-                        "Check the Globed version and Geode logs for an API compatibility error.");
+                    auto mod = getGlobedMod();
+                    auto version = mod ? mod->getVersion().toString() : "unknown";
+                    log::warn("Versus: Globed loaded ({}), but its exported Soft Link API table was not returned.", version);
+                    showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
+                        "Geode loaded Globed, but its exported API table was not returned.",
+                        "Fully restart Geometry Dash with Globed 2.2.2 enabled, then retry.");
                 }
             }
         }
@@ -163,55 +166,99 @@ namespace Versus {
 
         void showHome() {
             s_screen = Screen::Home;
-            basePage("VERSUS // ARENA", "ONLINE COMPETITION  •  BUILT FOR GEOMETRY DASH");
-            auto mid = m_size.height / 2.f;
+            basePage("VERSUS", "THE GEOMETRY DASH COMPETITION HUB");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto mid = h * 0.51f;
 
-            // New dashboard layout: status header, two distinct mode panels,
-            // and a compact bottom utility bar. This is a real layout change.
-            addCard({m_size.width/2.f, mid+73.f}, {m_size.width*0.82f, 54.f}, {15, 37, 76, 255});
-            auto* headerEdge = CCLayerColor::create({255,220,90,255}, m_size.width*0.82f, 3.f);
-            headerEdge->setPosition({m_size.width*0.09f, mid+98.f});
-            m_page->addChild(headerEdge, 2);
-            label("NETWORK STATUS", 0.25f, {m_size.width*0.30f, mid+83.f}, {145,190,245});
-            char const* state = !globedInstalled() ? "GLOBED REQUIRED" :
+            // Original plaza-inspired composition: identity bar, arena stage,
+            // side activity panels, and a bottom navigation dock.
+            auto* top = CCLayerColor::create({12, 25, 52, 248}, w * 0.92f, 46.f);
+            top->setPosition({w * 0.04f, h - 100.f});
+            m_page->addChild(top, 0);
+            auto* topLine = CCLayerColor::create({70, 194, 255, 255}, w * 0.92f, 2.f);
+            topLine->setPosition({w * 0.04f, h - 100.f});
+            m_page->addChild(topLine, 1);
+
+            label("PLAYER", 0.22f, {w * 0.13f, h - 70.f}, {125, 190, 240});
+            label("YOUR PROFILE", 0.34f, {w * 0.29f, h - 82.f}, {255, 226, 145});
+
+            char const* network = !globedInstalled() ? "GLOBED REQUIRED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
-                (!globedLoaded() ? "GLOBED LOADING" :
-                (!globed::api::available() ? "API UNAVAILABLE" :
+                (!globedLoaded() ? "GLOBED STARTING" :
+                (!globed::api::available() ? "API WAITING" :
                 (globed::api::net::isConnected() ? "ONLINE" : "OFFLINE"))));
-            label(state, 0.34f, {m_size.width*0.69f, mid+62.f},
-                globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,185,130});
+            label(network, 0.27f, {w * 0.75f, h - 82.f},
+                globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
-            addCard({m_size.width*0.30f, mid-13.f}, {m_size.width*0.40f, 116.f}, {20, 61, 105, 255});
-            addCard({m_size.width*0.72f, mid-13.f}, {m_size.width*0.40f, 116.f}, {67, 38, 103, 255});
-            auto* localStripe = CCLayerColor::create({70,220,255,255}, 4.f, 116.f);
-            localStripe->setPosition({m_size.width*0.30f-m_size.width*0.20f, mid-71.f});
-            m_page->addChild(localStripe, 1);
-            auto* onlineStripe = CCLayerColor::create({205,125,255,255}, 4.f, 116.f);
-            onlineStripe->setPosition({m_size.width*0.72f-m_size.width*0.20f, mid-71.f});
-            m_page->addChild(onlineStripe, 1);
-            label("LOCAL", 0.48f, {m_size.width*0.30f, mid+23.f}, {120,225,255});
-            label("2 PLAYERS", 0.27f, {m_size.width*0.30f, mid-3.f}, {190,220,245});
-            label("SAME DEVICE", 0.24f, {m_size.width*0.30f, mid-25.f}, {145,185,220});
-            label("ONLINE", 0.48f, {m_size.width*0.72f, mid+23.f}, {225,170,255});
-            label("GLOBED ROOMS", 0.27f, {m_size.width*0.72f, mid-3.f}, {220,195,245});
-            label("PLAY TOGETHER", 0.24f, {m_size.width*0.72f, mid-25.f}, {190,160,220});
+            auto* stage = CCLayerColor::create({15, 38, 76, 248}, w * 0.72f, h * 0.36f);
+            stage->setPosition({w * 0.14f, mid - h * 0.10f});
+            m_page->addChild(stage, 0);
+            auto* stageTop = CCLayerColor::create({62, 175, 245, 255}, w * 0.72f, 3.f);
+            stageTop->setPosition({w * 0.14f, mid + h * 0.26f - 3.f});
+            m_page->addChild(stageTop, 1);
+
+            auto* glowA = CCLayerColor::create({28, 91, 150, 100}, w * 0.52f, 3.f);
+            glowA->setPosition({w * 0.24f, mid + h * 0.09f});
+            m_page->addChild(glowA, 1);
+            auto* glowB = CCLayerColor::create({105, 65, 160, 110}, w * 0.40f, 2.f);
+            glowB->setPosition({w * 0.30f, mid - h * 0.03f});
+            m_page->addChild(glowB, 1);
+
+            label("ARENA PLAZA", 0.32f, {w * 0.50f, mid + h * 0.205f}, {150, 210, 255});
+            label("READY FOR YOUR NEXT DUEL?", 0.36f, {w * 0.50f, mid + h * 0.105f}, {255, 235, 170});
+            label("Find an opponent and compete head-to-head", 0.25f,
+                {w * 0.50f, mid + h * 0.045f}, {195, 218, 245});
+
+            auto* centerMark = CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png");
+            if (centerMark) {
+                centerMark->setPosition({w * 0.50f, mid - h * 0.035f});
+                centerMark->setScale(0.72f);
+                m_page->addChild(centerMark, 3);
+            } else {
+                label("VS", 0.72f, {w * 0.50f, mid - h * 0.035f}, {120, 220, 255});
+            }
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
-            menu->addChild(button("BACK", menu_selector(LobbyLayer::onClose),
-                {m_size.width*0.10f, m_size.height-38.f}, "GJ_button_01.png", 0.42f));
-            menu->addChild(button("LOCAL MATCH", menu_selector(LobbyLayer::onLocal),
-                {m_size.width*0.30f, mid-83.f}, "GJ_button_02.png", 0.54f));
-            menu->addChild(button("ONLINE MATCH", menu_selector(LobbyLayer::onOnline),
-                {m_size.width*0.72f, mid-83.f}, "GJ_button_05.png", 0.54f));
-            menu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
-                {m_size.width*0.30f, 43.f}, "GJ_button_04.png", 0.48f));
-            menu->addChild(button("VOICE CHAT", menu_selector(LobbyLayer::onVoice),
-                {m_size.width*0.72f, 43.f}, "GJ_button_01.png", 0.48f));
-
+            menu->addChild(button("FIND MATCH", menu_selector(LobbyLayer::onOnline),
+                {w * 0.50f, mid - h * 0.145f}, "GJ_button_05.png", 0.78f));
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.4.6", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
+
+            auto* left = CCLayerColor::create({19, 48, 82, 245}, w * 0.34f, h * 0.13f);
+            left->setPosition({w * 0.08f, h * 0.205f});
+            m_page->addChild(left, 0);
+            auto* right = CCLayerColor::create({42, 35, 82, 245}, w * 0.34f, h * 0.13f);
+            right->setPosition({w * 0.58f, h * 0.205f});
+            m_page->addChild(right, 0);
+            label("ROOMS", 0.31f, {w * 0.25f, h * 0.285f}, {120, 220, 255});
+            label("Browse / create", 0.22f, {w * 0.25f, h * 0.245f}, {190, 215, 245});
+            label("LIVE", 0.31f, {w * 0.75f, h * 0.285f}, {220, 165, 255});
+            label("Watch matches", 0.22f, {w * 0.75f, h * 0.245f}, {205, 190, 235});
+
+            auto* dock = CCLayerColor::create({8, 17, 37, 250}, w * 0.92f, 42.f);
+            dock->setPosition({w * 0.04f, 30.f});
+            m_page->addChild(dock, 0);
+            auto* dockLine = CCLayerColor::create({55, 112, 180, 255}, w * 0.92f, 2.f);
+            dockLine->setPosition({w * 0.04f, 70.f});
+            m_page->addChild(dockLine, 1);
+
+            auto* dockMenu = CCMenu::create();
+            dockMenu->setPosition({0,0});
+            dockMenu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
+                {w * 0.22f, 51.f}, "GJ_button_02.png", 0.38f));
+            dockMenu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
+                {w * 0.50f, 51.f}, "GJ_button_04.png", 0.38f));
+            dockMenu->addChild(button("VOICE", menu_selector(LobbyLayer::onVoice),
+                {w * 0.78f, 51.f}, "GJ_button_01.png", 0.38f));
+            dockMenu->addChild(button("BACK", menu_selector(LobbyLayer::onClose),
+                {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
+            m_page->addChild(dockMenu, 5);
+
+            label("VERSUS MODE  •  v0.4.7", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
+
+        void onHome(CCObject*) { showHome(); }
 
         void onWorkshop(CCObject*) {
             showInfo("VERSUS WORKSHOP", "COMMUNITY CONTENT",
