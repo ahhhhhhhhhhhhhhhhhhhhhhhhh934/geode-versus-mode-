@@ -41,6 +41,15 @@ namespace Versus {
             return nullptr;
         }
 
+        static CCScene* scene() {
+            auto* scene = CCScene::create();
+            if (!scene) return nullptr;
+            auto* layer = LobbyLayer::create();
+            if (!layer) return nullptr;
+            scene->addChild(layer);
+            return scene;
+        }
+
         bool init() override {
             if (!CCLayer::init()) return false;
             this->setKeypadEnabled(true);
@@ -51,7 +60,7 @@ namespace Versus {
 
         void keyBackClicked() override {
             if (s_screen != Screen::Home) showHome();
-            else this->removeFromParentAndCleanup(true);
+            else CCDirector::sharedDirector()->popScene();
         }
 
     private:
@@ -255,7 +264,7 @@ namespace Versus {
                 {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
             m_page->addChild(dockMenu, 5);
 
-            label("VERSUS MODE  •  v0.4.8", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.9", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void onHome(CCObject*) { showHome(); }
@@ -357,7 +366,7 @@ namespace Versus {
                 detail.c_str(),"Room creation and matchmaking are not exposed by Soft Link.");
         }
         void onBack(CCObject*) { showHome(); }
-        void onClose(CCObject*) { this->removeFromParentAndCleanup(true); }
+        void onClose(CCObject*) { CCDirector::sharedDirector()->popScene(); }
     };
 }
 
@@ -397,7 +406,12 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
         auto* lobby = Versus::LobbyLayer::create();
         if (lobby) {
             lobby->setID("versus-mode-lobby");
-            this->addChild(lobby, 2000);
+            auto* scene = Versus::LobbyLayer::scene();
+            if (scene) {
+                CCDirector::sharedDirector()->pushScene(
+                    CCTransitionFade::create(0.25f, scene)
+                );
+            }
         }
     }
 };
