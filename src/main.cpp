@@ -21,9 +21,15 @@ namespace Versus {
         return mod && mod->isOrWillBeEnabled();
     }
 
+    static bool globedLoaded() {
+        auto* mod = getGlobedMod();
+        return mod && mod->isOrWillBeEnabled() &&
+            geode::Loader::get()->isModLoaded("dankmeme.globed2");
+    }
+
     static bool globedReady() {
-        return globedInstalled() && globedEnabled() &&
-            globed::api::available() && globed::api::net::isConnected();
+        return globedLoaded() && globed::api::available() &&
+            globed::api::net::isConnected();
     }
 
     class LobbyLayer final : public CCLayer {
@@ -52,6 +58,7 @@ namespace Versus {
         CCSize m_size;
         CCLayer* m_page = nullptr;
         bool m_waitingForGlobed = false;
+        bool m_globedLoadedSignal = false;
         float m_globedWait = 0.f;
         float m_loadingPulse = 0.f;
         CCLabelBMFont* m_loadingLabel = nullptr;
@@ -71,7 +78,7 @@ namespace Versus {
                 float progress = std::min(m_globedWait / 12.f, 1.f);
                 m_loadingFill->setContentSize({m_size.width * 0.58f * progress, 9.f});
             }
-            if (globedInstalled() && globedEnabled() && globed::api::available()) {
+            if (m_globedLoadedSignal && globedLoaded() && globed::api::available()) {
                 m_waitingForGlobed = false;
                 if (globed::api::net::isConnected()) {
                     if (globed::api::room::isInRoom()) {
@@ -160,8 +167,9 @@ namespace Versus {
             label("NETWORK STATUS", 0.25f, {m_size.width*0.30f, mid+83.f}, {145,190,245});
             char const* state = !globedInstalled() ? "GLOBED REQUIRED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
-                (!globed::api::available() ? "GLOBED LOADING" :
-                (globed::api::net::isConnected() ? "ONLINE" : "OFFLINE")));
+                (!globedLoaded() ? "GLOBED LOADING" :
+                (!globed::api::available() ? "API UNAVAILABLE" :
+                (globed::api::net::isConnected() ? "ONLINE" : "OFFLINE"))));
             label(state, 0.34f, {m_size.width*0.69f, mid+62.f},
                 globedReady() ? ccColor3B{120,255,170} : ccColor3B{255,185,130});
 
@@ -185,7 +193,7 @@ namespace Versus {
             menu->addChild(button("CLOSE", menu_selector(LobbyLayer::onClose),
                 {m_size.width*0.72f, 43.f}, "GJ_button_01.png", 0.48f));
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.4.0", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.4", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
         }
 
         void onVoice(CCObject*) {
@@ -199,7 +207,13 @@ namespace Versus {
         void showGlobedLoading() {
             s_screen = Screen::Loading;
             m_waitingForGlobed = true;
+            m_globedLoadedSignal = globedLoaded();
             m_globedWait = 0.f;
+            if (!m_globedLoadedSignal) {
+                globed::api::waitForGlobed([this] {
+                    m_globedLoadedSignal = true;
+                });
+            }
             m_loadingPulse = 0.f;
             basePage("ONLINE VERSUS", "GLOBED CONNECTION");
             auto mid = m_size.height / 2.f;
@@ -254,7 +268,7 @@ namespace Versus {
                     "Then reopen Versus Mode.");
                 return;
             }
-            if (!globed::api::available()) {
+            if (!globedLoaded() || !globed::api::available()) {
                 showGlobedLoading();
                 return;
             }
