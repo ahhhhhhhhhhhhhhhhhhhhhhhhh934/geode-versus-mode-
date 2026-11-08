@@ -167,8 +167,13 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
         menu->setID("versus-mode-grid-entry");
         menu->setPosition({0.f, 0.f});
 
-        auto* tile = ButtonSprite::create("VERSUS", 86, true, "goldFont.fnt",
-            "GJ_button_02.png", 58.f, 0.8f);
+        // Use Geometry Dash's own Versus icon frame instead of a generic
+        // ButtonSprite. Keep a stock GD tile as the button's backing plate.
+        auto* tile = CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png");
+        if (!tile) {
+            // Fallback if a particular GD texture pack omits the frame.
+            tile = CCSprite::createWithSpriteFrameName("GJ_createBtn_001.png");
+        }
         auto* item = CCMenuItemSpriteExtra::create(
             tile, this, menu_selector(VersusCreatorLayer::onVersus)
         );
