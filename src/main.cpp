@@ -319,6 +319,8 @@ namespace Versus {
             m_page->addChild(menu, 5);
         }
 
+        void onRooms(CCObject*) { showRooms(); }
+
         void onDashboard(CCObject*) { showHome(); }
 
         void onHome(CCObject*) { showPlaza(); }
