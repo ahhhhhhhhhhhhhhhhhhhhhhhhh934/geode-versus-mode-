@@ -264,7 +264,7 @@ namespace Versus {
                 {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
             m_page->addChild(dockMenu, 5);
 
-            label("VERSUS MODE  •  v0.4.9", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.10", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void onHome(CCObject*) { showHome(); }
@@ -403,15 +403,12 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
     }
 
     void onVersus(CCObject*) {
-        auto* lobby = Versus::LobbyLayer::create();
-        if (lobby) {
-            lobby->setID("versus-mode-lobby");
-            auto* scene = Versus::LobbyLayer::scene();
-            if (scene) {
-                CCDirector::sharedDirector()->pushScene(
-                    CCTransitionFade::create(0.25f, scene)
-                );
-            }
+        auto* scene = Versus::LobbyLayer::scene();
+        if (scene) {
+            scene->setID("versus-mode-scene");
+            CCDirector::sharedDirector()->pushScene(
+                CCTransitionFade::create(0.25f, scene)
+            );
         }
     }
 };
