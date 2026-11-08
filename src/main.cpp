@@ -127,7 +127,7 @@ namespace Versus {
 
 class $modify(VersusMoreGamesLayer, GJMoreGamesLayer) {
     bool init() {
-        if (!GJMoreGamesLayer::init()) return false;
+        if (!GJDropDownLayer::init("VERSUS MODE")) return false;
         auto size=CCDirector::sharedDirector()->getWinSize();
         auto* menu=CCMenu::create();
         menu->setID("versus-mode-grid-entry");
