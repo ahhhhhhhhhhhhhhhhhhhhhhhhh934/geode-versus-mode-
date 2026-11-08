@@ -1,9 +1,9 @@
 {
-  "geode": "v6.0.0-alpha.1",
+  "geode": "v5.11.2",
   "gd": {
-    "android": "2.2091",
-    "win": "2.2091",
-    "ios": "2.2091"
+    "android": "2.2081",
+    "win": "2.2081",
+    "ios": "2.2081"
   },
   "id": "versus.mode",
   "name": "Versus Mode",
