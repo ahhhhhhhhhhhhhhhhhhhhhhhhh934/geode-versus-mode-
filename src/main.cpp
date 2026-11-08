@@ -1,54 +1,30 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
-#include <globed/soft-link/Wrappers.hpp>
+#include <globed/soft-link/API.hpp>
 
 using namespace geode::prelude;
 
 namespace Versus {
-    // Globed's stock wrapper caches a failed event-export lookup forever.
-    // Query the Geode event directly so a late-registered Globed API can be
-    // discovered on a later attempt instead of remaining permanently missing.
-    using GlobedGetRootTableFn = geode::Result<globed::RootApiTable*> (*)();
-
-    static globed::RootApiTable* getGlobedApiTable() {
-        GlobedGetRootTableFn getter = nullptr;
-        geode::Dispatch<GlobedGetRootTableFn*> event("dankmeme.globed2/getRootTable");
-        event.send(&getter);
-
-        if (!getter) {
-            return nullptr;
-        }
-
-        auto result = getter();
-        if (!result) {
-            log::warn("Versus: Globed getRootTable event responded, but returned an error.");
-            return nullptr;
-        }
-        return result.unwrap();
-    }
-
+    // Use Globed's supported Soft Link API. Its table lookup retries while
+    // Globed is installed/enabled, and its event export handles ABI-safe lookup.
     static bool globedApiAvailable() {
-        return getGlobedApiTable() != nullptr;
+        return globed::api::available();
     }
 
     static bool globedConnected() {
-        auto* table = getGlobedApiTable();
-        return table && table->net && table->net->isConnected();
+        return globed::api::net::isConnected();
     }
 
     static bool globedInRoom() {
-        auto* table = getGlobedApiTable();
-        return table && table->room && table->room->isInRoom();
+        return globed::api::room::isInRoom();
     }
 
     static uint32_t globedRoomId() {
-        auto* table = getGlobedApiTable();
-        return table && table->room ? table->room->getId() : 0;
+        return globed::api::room::getId();
     }
 
     static size_t globedPlayerCount() {
-        auto* table = getGlobedApiTable();
-        return table && table->game ? table->game->getPlayerCount() : 0;
+        return globed::api::game::getPlayerCount();
     }
 
     enum class Screen { Home, Local, Online, Loading };
@@ -310,7 +286,7 @@ namespace Versus {
                 {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
             m_page->addChild(dockMenu, 5);
 
-            label("VERSUS MODE  •  v0.4.11", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.12", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void onHome(CCObject*) { showHome(); }
