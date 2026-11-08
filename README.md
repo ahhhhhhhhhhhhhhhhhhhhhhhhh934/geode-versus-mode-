@@ -24,7 +24,7 @@ The mod uses Globed's documented Soft Link API. The uploaded v0.4.13 log showed 
 
 ## Build
 
-The project targets Geometry Dash 2.2091 and Geode SDK 6.0.0-alpha.1. For Android64, use the repository's GitHub Actions workflow:
+The project targets Geometry Dash 2.2081 and Geode SDK 5.11.2. For Android64, use the repository's GitHub Actions workflow:
 
 1. Open **Actions**.
 2. Run **Android64 Overhaul Build** (or push to the overhaul branch).
@@ -33,6 +33,6 @@ The project targets Geometry Dash 2.2091 and Geode SDK 6.0.0-alpha.1. For Androi
 No release is published by the overhaul build workflow. The package is not considered tested until it is installed and checked in Geometry Dash on-device.
 
 
-## 2.209 compatibility note
+## Target compatibility
 
-This branch targets Geode v6.0.0-alpha.1 because Geode's v5.11.2 line is still primarily for Geometry Dash 2.2081. Geode v6 alpha adds 2.209x support and is a developer prerelease, so this build must be treated as experimental until tested on the target Android installation.
+This branch targets Geometry Dash 2.2081 and Geode v5.11.2. The Android64 build for this target has compiled successfully; the artifact still needs installation and in-game testing.
