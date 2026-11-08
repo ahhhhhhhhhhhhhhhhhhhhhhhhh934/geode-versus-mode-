@@ -139,10 +139,10 @@ namespace Versus {
                 } else {
                     auto mod = getGlobedMod();
                     auto version = mod ? "installed" : "unknown";
-                    log::warn("Versus: Globed loaded ({}), but its Soft Link API table was unavailable. Check that Globed 2.3.0 or newer is installed; versions before 2.3.0 may not export the API functions.", version);
+                    log::warn("Versus: Globed loaded ({}), but its Soft Link API table was unavailable. The current stable Globed 2.2.2 has a known API export issue; an upstream build with the export fix is needed.", version);
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
                         "Geode loaded Globed, but its Soft Link API table is unavailable. The current Globed 2.2.2 release has a known Soft Link API export issue; an upstream 2.3.0 development build contains a fix.",
-                        "Fully restart Geometry Dash with Globed 2.3.0 or newer enabled, then retry.");
+                        "Update Globed when an upstream build containing the API export fix is available, then restart Geometry Dash.");
                 }
             }
         }
@@ -354,7 +354,7 @@ namespace Versus {
             s_screen=Screen::Online;
             if (!globedInstalled()) {
                 showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED NOT INSTALLED",
-                    "Install Globed 2.3.0 or newer to use online features.",
+                    "Install Globed to use online features. Note: the current stable Globed 2.2.2 has a known Soft Link API export issue.",
                     "Versus Mode can still be used without Globed.");
                 return;
             }
