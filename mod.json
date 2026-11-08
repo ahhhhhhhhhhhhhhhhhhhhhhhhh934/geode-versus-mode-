@@ -7,7 +7,7 @@
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v0.3.1",
+  "version": "v0.3.2",
   "developer": "Versus Mode Team",
   "description": "Versus Mode for Geometry Dash with Globed multiplayer integration.",
   "tags": [
@@ -16,6 +16,6 @@
     "enhancement"
   ],
   "dependencies": {
-    "dankmeme.globed2": ">=2.3.0-beta.1"
+    "dankmeme.globed2": ">=2.2.2"
   }
 }
