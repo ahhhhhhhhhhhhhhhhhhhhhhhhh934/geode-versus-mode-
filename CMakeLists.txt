@@ -11,7 +11,7 @@ if (NOT DEFINED ENV{GEODE_SDK})
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:>=2.3.0-beta.1)
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0-beta.1)
 
 include(FetchContent)
 FetchContent_Declare(globed2_headers
