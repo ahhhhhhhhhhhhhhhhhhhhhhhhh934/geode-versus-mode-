@@ -35,7 +35,7 @@ jobs:
         id: build
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: '5.8.2'
+          sdk: '5.11.1'
           target: Android64
           path: .
           build-config: Release
@@ -76,7 +76,7 @@ jobs:
         id: build
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: '5.8.2'
+          sdk: '5.11.1'
           target: iOS
           path: .
           build-config: Release
