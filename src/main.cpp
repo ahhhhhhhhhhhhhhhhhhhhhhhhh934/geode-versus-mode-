@@ -422,8 +422,14 @@ namespace Versus {
                     "Then reopen Versus Mode.");
                 return;
             }
-            if (!globedLoaded() || !globedApiAvailable()) {
+            if (!globedLoaded()) {
                 showGlobedLoading();
+                return;
+            }
+            if (!globedApiAvailable()) {
+                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","SOFT LINK TABLE MISSING",
+                    "Globed loaded, but its exported Soft Link API table is unavailable.",
+                    "This needs an upstream Globed build with the API-export fix; a network reconnect will not repair it.");
                 return;
             }
             if (!globedConnected()) {
