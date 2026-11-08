@@ -107,7 +107,7 @@ namespace Versus {
                         "Check that Globed 2.2.2 is enabled and restart Geometry Dash.");
                 } else {
                     auto mod = getGlobedMod();
-                    auto version = mod ? mod->getVersion().toString() : "unknown";
+                    auto version = mod ? "installed" : "unknown";
                     log::warn("Versus: Globed loaded ({}), but its exported Soft Link API table was not returned.", version);
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
                         "Geode loaded Globed, but its exported API table was not returned.",
@@ -255,7 +255,7 @@ namespace Versus {
                 {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
             m_page->addChild(dockMenu, 5);
 
-            label("VERSUS MODE  •  v0.4.7", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.8", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void onHome(CCObject*) { showHome(); }
