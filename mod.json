@@ -1,0 +1,10 @@
+{
+  "geode": "v5.8.2",
+  "gd": { "android": "2.2081", "win": "2.2081" },
+  "id": "versus.mode",
+  "name": "Versus Mode",
+  "version": "v0.3.0",
+  "developer": "Versus Mode Team",
+  "description": "Versus Mode prototype for Geometry Dash. Includes a lobby UI; multiplayer gameplay and networking are not implemented yet.",
+  "tags": ["gameplay", "online", "enhancement"]
+}
