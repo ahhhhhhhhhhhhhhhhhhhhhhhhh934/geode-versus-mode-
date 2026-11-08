@@ -5,7 +5,7 @@
 using namespace geode::prelude;
 
 namespace Versus {
-    enum class Screen { Home, Local, Online };
+    enum class Screen { Home, Local, Online, Loading };
     static Screen s_screen = Screen::Home;
 
     static geode::Mod* getGlobedMod() {
@@ -38,6 +38,7 @@ namespace Versus {
         bool init() override {
             if (!CCLayer::init()) return false;
             this->setKeypadEnabled(true);
+            this->scheduleUpdate();
             this->showHome();
             return true;
         }
@@ -50,6 +51,55 @@ namespace Versus {
     private:
         CCSize m_size;
         CCLayer* m_page = nullptr;
+        bool m_waitingForGlobed = false;
+        float m_globedWait = 0.f;
+        float m_loadingPulse = 0.f;
+        CCLabelBMFont* m_loadingLabel = nullptr;
+        CCLayerColor* m_loadingFill = nullptr;
+
+        void update(float dt) override {
+            CCLayer::update(dt);
+            if (!m_waitingForGlobed) return;
+            m_globedWait += dt;
+            m_loadingPulse += dt;
+            if (m_loadingLabel) {
+                int dots = static_cast<int>(m_loadingPulse * 3.f) % 4;
+                std::string text = "CONNECTING TO GLOBED" + std::string(dots, '.');
+                m_loadingLabel->setString(text.c_str());
+            }
+            if (m_loadingFill) {
+                float progress = std::min(m_globedWait / 12.f, 1.f);
+                m_loadingFill->setContentSize({m_size.width * 0.58f * progress, 9.f});
+            }
+            if (globedInstalled() && globedEnabled() && globed::api::available()) {
+                m_waitingForGlobed = false;
+                if (globed::api::net::isConnected()) {
+                    if (globed::api::room::isInRoom()) {
+                        auto players = globed::api::game::getPlayerCount();
+                        auto roomId = globed::api::room::getId();
+                        auto status = fmt::format("ROOM {}  •  {} PLAYERS", roomId, players);
+                        showInfo("ONLINE VERSUS", "GLOBED ROOM READY", status.c_str(),
+                            "Globed API is responding and your room is detected.",
+                            "Matchmaking and Versus gameplay sync still need their own protocol.");
+                    } else {
+                        showInfo("ONLINE VERSUS", "GLOBED CONNECTION READY", "API CONNECTED",
+                            "Globed is ready, but you are not inside a room.",
+                            "Join a room in Globed, then return here.");
+                    }
+                } else {
+                    showInfo("ONLINE VERSUS", "GLOBED API READY", "NOT CONNECTED",
+                        "The Globed API loaded successfully.",
+                        "Connect to a Globed server, then try Online Match again.");
+                }
+                return;
+            }
+            if (m_globedWait >= 12.f) {
+                m_waitingForGlobed = false;
+                showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "API DID NOT RESPOND",
+                    "Globed is installed, but its API did not become available.",
+                    "Check that Globed 2.3.0+ is enabled, then restart Geometry Dash.");
+            }
+        }
 
         void clearPage() {
             if (m_page) {
@@ -140,15 +190,36 @@ namespace Versus {
 
         void onVoice(CCObject*) {
             s_screen = Screen::Online;
-#if defined(GEODE_IS_ANDROID) || defined(GEODE_IS_IOS)
-            showInfo("VOICE CHAT", "GLOBED AUDIO", "MOBILE MICROPHONE LIMIT",
-                "Globed voice playback is available, but mobile voice transmission",
-                "is not supported by the current official Globed release.");
-#else
-            showInfo("VOICE CHAT", "GLOBED AUDIO", "USE GLOBED VOICE CHAT",
-                "Globed includes its own in-level voice chat and audio controls.",
-                "Join the same level and configure voice chat in Globed settings.");
-#endif
+            showInfo("VOICE CHAT", "GLOBED AUDIO", "GLOBED VOICE CHAT",
+                "Globed provides in-game voice chat and emotes.",
+                "Use Globed's in-level voice controls while playing together.");
+        }
+
+
+        void showGlobedLoading() {
+            s_screen = Screen::Loading;
+            m_waitingForGlobed = true;
+            m_globedWait = 0.f;
+            m_loadingPulse = 0.f;
+            basePage("ONLINE VERSUS", "GLOBED CONNECTION");
+            auto mid = m_size.height / 2.f;
+            addCard({m_size.width/2.f, mid+15.f}, {m_size.width*0.82f, 142.f}, {18, 42, 91, 255});
+            label("PLEASE WAIT", 0.34f, {m_size.width/2.f, mid+58.f}, {255,220,105});
+            m_loadingLabel = label("CONNECTING TO GLOBED", 0.38f,
+                {m_size.width/2.f, mid+18.f}, {255,255,255});
+            auto* track = CCLayerColor::create({10,18,44,255}, m_size.width*0.58f, 9.f);
+            track->setPosition({m_size.width*0.21f, mid-20.f});
+            m_page->addChild(track, 2);
+            m_loadingFill = CCLayerColor::create({80,225,255,255}, 2.f, 9.f);
+            m_loadingFill->setPosition({0.f,0.f});
+            track->addChild(m_loadingFill, 3);
+            label("CHECKING MOD API  •  12 SECOND TIMEOUT", 0.22f,
+                {m_size.width/2.f, mid-48.f}, {165,195,235});
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("CANCEL", menu_selector(LobbyLayer::onBack),
+                {m_size.width/2.f, 48.f}, "GJ_button_01.png", 0.62f));
+            m_page->addChild(menu, 5);
         }
 
         void showInfo(char const* title, char const* subtitle, char const* status, char const* detail, char const* extra) {
@@ -184,9 +255,7 @@ namespace Versus {
                 return;
             }
             if (!globed::api::available()) {
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED IS STILL LOADING",
-                    "Globed is installed and enabled, but its API is not ready yet.",
-                    "Reopen this screen after Globed finishes loading.");
+                showGlobedLoading();
                 return;
             }
             if (!globed::api::net::isConnected()) {
