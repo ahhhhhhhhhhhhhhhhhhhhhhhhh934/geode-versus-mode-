@@ -158,9 +158,9 @@ namespace Versus {
 
 class $modify(VersusMoreGamesLayer, GJMoreGamesLayer) {
     bool init() {
-        // Preserve the original More Games grid; calling GJDropDownLayer::init
-        // directly skips GJMoreGamesLayer's own initialization.
-        if (!GJMoreGamesLayer::init()) return false;
+        // GJMoreGamesLayer has no zero-argument init binding on Android 2.2081.
+        // Initialize its inherited dropdown layer with the expected title.
+        if (!GJDropDownLayer::init("More Games")) return false;
         auto size=CCDirector::sharedDirector()->getWinSize();
         auto* menu=CCMenu::create();
         menu->setID("versus-mode-grid-entry");
