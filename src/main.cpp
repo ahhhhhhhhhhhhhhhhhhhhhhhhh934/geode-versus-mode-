@@ -7,7 +7,6 @@ using namespace geode::prelude;
 namespace Versus {
     enum class Screen { Home, Local, Online, Loading };
     static Screen s_screen = Screen::Home;
-    static bool s_globedLoadedSignal = false;
 
     static geode::Mod* getGlobedMod() {
         return geode::Loader::get()->getInstalledMod("dankmeme.globed2");
@@ -78,7 +77,7 @@ namespace Versus {
                 float progress = std::min(m_globedWait / 12.f, 1.f);
                 m_loadingFill->setContentSize({m_size.width * 0.58f * progress, 9.f});
             }
-            if (s_globedLoadedSignal && globedLoaded() && globed::api::available()) {
+            if (globedLoaded() && globed::api::available()) {
                 m_waitingForGlobed = false;
                 if (globed::api::net::isConnected()) {
                     if (globed::api::room::isInRoom()) {
@@ -102,9 +101,15 @@ namespace Versus {
             }
             if (m_globedWait >= 12.f) {
                 m_waitingForGlobed = false;
-                showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "API DID NOT RESPOND",
-                    "Globed is installed, but its API did not become available.",
-                    "Check that Globed 2.2.2 is enabled, then restart Geometry Dash.");
+                if (!globedLoaded()) {
+                    showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED DID NOT LOAD",
+                        "Geode has not finished loading the Globed mod.",
+                        "Check that Globed 2.2.2 is enabled and restart Geometry Dash.");
+                } else {
+                    showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "API NOT AVAILABLE",
+                        "Globed loaded, but its Soft Link API is not available.",
+                        "Check the Globed version and Geode logs for an API compatibility error.");
+                }
             }
         }
 
@@ -193,6 +198,8 @@ namespace Versus {
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
+            menu->addChild(button("BACK", menu_selector(LobbyLayer::onClose),
+                {m_size.width*0.10f, m_size.height-38.f}, "GJ_button_01.png", 0.42f));
             menu->addChild(button("LOCAL MATCH", menu_selector(LobbyLayer::onLocal),
                 {m_size.width*0.30f, mid-83.f}, "GJ_button_02.png", 0.54f));
             menu->addChild(button("ONLINE MATCH", menu_selector(LobbyLayer::onOnline),
@@ -203,7 +210,7 @@ namespace Versus {
                 {m_size.width*0.72f, 43.f}, "GJ_button_01.png", 0.48f));
 
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.4.4", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.4.6", 0.24f, {m_size.width/2.f, 13.f}, {125,155,195});
         }
 
         void onWorkshop(CCObject*) {
@@ -224,13 +231,7 @@ namespace Versus {
         void showGlobedLoading() {
             s_screen = Screen::Loading;
             m_waitingForGlobed = true;
-            s_globedLoadedSignal = globedLoaded();
             m_globedWait = 0.f;
-            if (!s_globedLoadedSignal) {
-                globed::api::waitForGlobed([] {
-                    s_globedLoadedSignal = true;
-                });
-            }
             m_loadingPulse = 0.f;
             basePage("ONLINE VERSUS", "GLOBED CONNECTION");
             auto mid = m_size.height / 2.f;
