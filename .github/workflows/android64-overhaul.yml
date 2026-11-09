@@ -30,6 +30,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Versus-Mode-Android64-Overhaul
-          path: ${{ steps.build.outputs.build-output }}
+          path: build/versus.mode.geode
           if-no-files-found: error
           retention-days: 14
