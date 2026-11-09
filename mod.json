@@ -17,8 +17,8 @@
   ],
   "dependencies": {
     "dankmeme.globed2": {
-      "version": ">=2.2.2",
-      "required": false
+      "version": "2.2.2",
+      "required": true
     }
   }
 }
