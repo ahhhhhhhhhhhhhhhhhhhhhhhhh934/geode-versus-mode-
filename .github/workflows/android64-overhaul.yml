@@ -1,0 +1,35 @@
+name: Android64 Overhaul Build
+
+on:
+  push:
+    branches:
+      - "overhaul/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build Android64 Geode package
+        id: build
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          sdk: given
+          target: Android64
+          path: .
+          build-config: Release
+          android-min-sdk: '24'
+
+      - name: Upload Android64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Versus-Mode-Android64-Overhaul
+          path: ${{ steps.build.outputs.build-output }}
+          if-no-files-found: error
+          retention-days: 14

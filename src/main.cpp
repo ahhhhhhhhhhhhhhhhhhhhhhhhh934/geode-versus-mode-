@@ -135,14 +135,14 @@ namespace Versus {
                 if (!globedLoaded()) {
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED DID NOT LOAD",
                         "Geode has not finished loading the Globed mod.",
-                        "Check that Globed 2.2.2 is enabled and restart Geometry Dash.");
+                        "Enable Globed in Geode, then restart Geometry Dash.");
                 } else {
                     auto mod = getGlobedMod();
                     auto version = mod ? "installed" : "unknown";
                     log::warn("Versus: Globed loaded ({}), but its exported Soft Link API table was not returned.", version);
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
                         "Geode loaded Globed, but its exported API table was not returned.",
-                        "Fully restart Geometry Dash with Globed 2.2.2 enabled, then retry.");
+                        "Your Globed build may not export the Soft Link API. Use an upstream build that includes the API-export fix.");
                 }
             }
         }
@@ -197,112 +197,172 @@ namespace Versus {
 
         void showHome() {
             s_screen = Screen::Home;
-            basePage("VERSUS", "THE GEOMETRY DASH COMPETITION HUB");
+            basePage("VERSUS MODE", "COMPETE  •  CONNECT  •  PLAY");
             auto w = m_size.width;
             auto h = m_size.height;
-            auto mid = h * 0.51f;
+            auto mid = h * 0.54f;
 
-            // Original plaza-inspired composition: identity bar, arena stage,
-            // side activity panels, and a bottom navigation dock.
-            auto* top = CCLayerColor::create({12, 25, 52, 248}, w * 0.92f, 46.f);
-            top->setPosition({w * 0.04f, h - 100.f});
-            m_page->addChild(top, 0);
-            auto* topLine = CCLayerColor::create({70, 194, 255, 255}, w * 0.92f, 2.f);
-            topLine->setPosition({w * 0.04f, h - 100.f});
-            m_page->addChild(topLine, 1);
-
-            label("PLAYER", 0.22f, {w * 0.13f, h - 70.f}, {125, 190, 240});
-            label("YOUR PROFILE", 0.34f, {w * 0.29f, h - 82.f}, {255, 226, 145});
-
-            char const* network = !globedInstalled() ? "GLOBED REQUIRED" :
+            auto* status = CCLayerColor::create({12, 25, 52, 248}, w * 0.88f, 42.f);
+            status->setPosition({w * 0.06f, h - 112.f});
+            m_page->addChild(status, 0);
+            label("NETWORK", 0.22f, {w * 0.19f, h - 91.f}, {125,190,240});
+            char const* network = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globedApiAvailable() ? "API WAITING" :
-                (globedConnected() ? "ONLINE" : "OFFLINE"))));
-            label(network, 0.27f, {w * 0.75f, h - 82.f},
+                (!globedApiAvailable() ? "GLOBED API UNAVAILABLE" :
+                (globedConnected() ? "CONNECTED" : "OFFLINE"))));
+            label(network, 0.29f, {w * 0.63f, h - 91.f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
-            auto* stage = CCLayerColor::create({15, 38, 76, 248}, w * 0.72f, h * 0.36f);
-            stage->setPosition({w * 0.14f, mid - h * 0.10f});
-            m_page->addChild(stage, 0);
-            auto* stageTop = CCLayerColor::create({62, 175, 245, 255}, w * 0.72f, 3.f);
-            stageTop->setPosition({w * 0.14f, mid + h * 0.26f - 3.f});
-            m_page->addChild(stageTop, 1);
+            auto* hero = CCLayerColor::create({15, 38, 76, 248}, w * 0.86f, h * 0.34f);
+            hero->setPosition({w * 0.07f, mid - h * 0.12f});
+            m_page->addChild(hero, 0);
+            auto* heroLine = CCLayerColor::create({62,175,245,255}, w * 0.86f, 3.f);
+            heroLine->setPosition({w * 0.07f, mid + h * 0.22f - 3.f});
+            m_page->addChild(heroLine, 1);
+            label("YOUR NEXT MATCH STARTS HERE", 0.39f,
+                {w * 0.50f, mid + h * 0.14f}, {255,224,110});
+            label("Choose a destination", 0.30f,
+                {w * 0.50f, mid + h * 0.075f}, {195,218,245});
 
-            auto* glowA = CCLayerColor::create({28, 91, 150, 100}, w * 0.52f, 3.f);
-            glowA->setPosition({w * 0.24f, mid + h * 0.09f});
-            m_page->addChild(glowA, 1);
-            auto* glowB = CCLayerColor::create({105, 65, 160, 110}, w * 0.40f, 2.f);
-            glowB->setPosition({w * 0.30f, mid - h * 0.03f});
-            m_page->addChild(glowB, 1);
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("OPEN PLAZA", menu_selector(LobbyLayer::onHome),
+                {w * 0.50f, mid - h * 0.005f}, "GJ_button_05.png", 0.70f));
+            menu->addChild(button("ONLINE VERSUS", menu_selector(LobbyLayer::onOnline),
+                {w * 0.50f, mid - h * 0.105f}, "GJ_button_04.png", 0.62f));
+            menu->addChild(button("LOCAL", menu_selector(LobbyLayer::onLocal),
+                {w * 0.25f, h * 0.245f}, "GJ_button_01.png", 0.48f));
+            menu->addChild(button("ROOMS", menu_selector(LobbyLayer::onRooms),
+                {w * 0.50f, h * 0.245f}, "GJ_button_02.png", 0.48f));
+            menu->addChild(button("VOICE", menu_selector(LobbyLayer::onVoice),
+                {w * 0.75f, h * 0.245f}, "GJ_button_03.png", 0.48f));
+            menu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
+                {w * 0.50f, h * 0.145f}, "GJ_button_01.png", 0.48f));
+            menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
+                {w * 0.50f, 48.f}, "GJ_button_01.png", 0.48f));
+            m_page->addChild(menu, 5);
 
-            label("ARENA PLAZA", 0.32f, {w * 0.50f, mid + h * 0.205f}, {150, 210, 255});
-            label("READY FOR YOUR NEXT DUEL?", 0.36f, {w * 0.50f, mid + h * 0.105f}, {255, 235, 170});
-            label("Find an opponent and compete head-to-head", 0.25f,
-                {w * 0.50f, mid + h * 0.045f}, {195, 218, 245});
+            label("VERSUS MODE  •  v0.5.0", 0.20f, {w/2.f, 12.f}, {125,155,195});
+        }
 
-            auto* centerMark = CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png");
-            if (centerMark) {
-                centerMark->setPosition({w * 0.50f, mid - h * 0.035f});
-                centerMark->setScale(0.72f);
-                m_page->addChild(centerMark, 3);
-            } else {
-                label("VS", 0.72f, {w * 0.50f, mid - h * 0.035f}, {120, 220, 255});
-            }
+        void showPlaza() {
+            s_screen = Screen::Home;
+            basePage("PLAZA", "YOUR MULTIPLAYER HUB");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto* card = CCLayerColor::create({16, 39, 75, 250}, w * 0.86f, h * 0.36f);
+            card->setPosition({w * 0.07f, h * 0.43f});
+            m_page->addChild(card, 0);
+            label("WELCOME TO THE PLAZA", 0.42f,
+                {w * 0.50f, h * 0.73f}, {255,224,110});
+            label("Meet up, check your connection, and get ready to play.", 0.25f,
+                {w * 0.50f, h * 0.66f}, {195,218,245});
+            char const* state = !globedInstalled() ? "Install Globed for online features" :
+                (!globedEnabled() ? "Globed is disabled" :
+                (!globedLoaded() ? "Globed is still loading" :
+                (!globedApiAvailable() ? "Globed API is unavailable" :
+                (globedConnected() ? "Globed: connected" : "Globed: not connected"))));
+            label(state, 0.29f, {w * 0.50f, h * 0.59f},
+                globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button("FIND MATCH", menu_selector(LobbyLayer::onOnline),
-                {w * 0.50f, mid - h * 0.145f}, "GJ_button_05.png", 0.78f));
+                {w * 0.50f, h * 0.48f}, "GJ_button_05.png", 0.58f));
+            menu->addChild(button("ROOM STATUS", menu_selector(LobbyLayer::onRooms),
+                {w * 0.28f, h * 0.36f}, "GJ_button_02.png", 0.43f));
+            menu->addChild(button("VOICE SETUP", menu_selector(LobbyLayer::onVoice),
+                {w * 0.72f, h * 0.36f}, "GJ_button_03.png", 0.43f));
+            menu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
+                {w * 0.50f, h * 0.25f}, "GJ_button_01.png", 0.45f));
+            menu->addChild(button("HOME", menu_selector(LobbyLayer::onDashboard),
+                {w * 0.50f, 48.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
-
-            auto* left = CCLayerColor::create({19, 48, 82, 245}, w * 0.34f, h * 0.13f);
-            left->setPosition({w * 0.08f, h * 0.205f});
-            m_page->addChild(left, 0);
-            auto* right = CCLayerColor::create({42, 35, 82, 245}, w * 0.34f, h * 0.13f);
-            right->setPosition({w * 0.58f, h * 0.205f});
-            m_page->addChild(right, 0);
-            label("ROOMS", 0.31f, {w * 0.25f, h * 0.285f}, {120, 220, 255});
-            label("Browse / create", 0.22f, {w * 0.25f, h * 0.245f}, {190, 215, 245});
-            label("LIVE", 0.31f, {w * 0.75f, h * 0.285f}, {220, 165, 255});
-            label("Watch matches", 0.22f, {w * 0.75f, h * 0.245f}, {205, 190, 235});
-
-            auto* dock = CCLayerColor::create({8, 17, 37, 250}, w * 0.92f, 42.f);
-            dock->setPosition({w * 0.04f, 30.f});
-            m_page->addChild(dock, 0);
-            auto* dockLine = CCLayerColor::create({55, 112, 180, 255}, w * 0.92f, 2.f);
-            dockLine->setPosition({w * 0.04f, 70.f});
-            m_page->addChild(dockLine, 1);
-
-            auto* dockMenu = CCMenu::create();
-            dockMenu->setPosition({0,0});
-            dockMenu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
-                {w * 0.22f, 51.f}, "GJ_button_02.png", 0.38f));
-            dockMenu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
-                {w * 0.50f, 51.f}, "GJ_button_04.png", 0.38f));
-            dockMenu->addChild(button("VOICE", menu_selector(LobbyLayer::onVoice),
-                {w * 0.78f, 51.f}, "GJ_button_01.png", 0.38f));
-            dockMenu->addChild(button("BACK", menu_selector(LobbyLayer::onClose),
-                {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
-            m_page->addChild(dockMenu, 5);
-
-            label("VERSUS MODE  •  v0.4.12", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
-        void onHome(CCObject*) { showHome(); }
+        void showRooms() {
+            s_screen = Screen::Online;
+            basePage("ROOM STATUS", "GLOBED CONNECTION INFORMATION");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto mid = h * 0.57f;
+            addCard({w * 0.50f, mid}, {w * 0.86f, h * 0.31f}, {18,42,91,255});
+
+            char const* state = !globedInstalled() ? "GLOBED NOT INSTALLED" :
+                (!globedEnabled() ? "GLOBED DISABLED" :
+                (!globedLoaded() ? "GLOBED NOT LOADED" :
+                (!globedApiAvailable() ? "SOFT LINK API UNAVAILABLE" :
+                (!globedConnected() ? "NOT CONNECTED" :
+                (globedInRoom() ? "INSIDE A ROOM" : "CONNECTED  •  NO ROOM")))));
+            label(state, 0.37f, {w * 0.50f, mid + h * 0.075f},
+                globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
+
+            if (globedLoaded() && globedApiAvailable() && globedConnected() && globedInRoom()) {
+                auto roomText = fmt::format("ROOM ID  {}", globedRoomId());
+                auto playerText = fmt::format("{} PLAYERS IN YOUR LEVEL", globedPlayerCount());
+                label(roomText.c_str(), 0.30f, {w * 0.50f, mid + h * 0.005f}, {225,235,250});
+                label(playerText.c_str(), 0.27f, {w * 0.50f, mid - h * 0.055f}, {170,210,250});
+            } else {
+                label("Join or create a room using Globed's own room menu.", 0.27f,
+                    {w * 0.50f, mid}, {220,230,245});
+                label("Versus room creation and matchmaking are not implemented yet.", 0.23f,
+                    {w * 0.50f, mid - h * 0.055f}, {170,195,230});
+            }
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("REFRESH", menu_selector(LobbyLayer::onRooms),
+                {w * 0.32f, 48.f}, "GJ_button_05.png", 0.48f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
+                {w * 0.68f, 48.f}, "GJ_button_01.png", 0.48f));
+            m_page->addChild(menu, 5);
+        }
+
+        void onRooms(CCObject*) { showRooms(); }
+
+        void onDashboard(CCObject*) { showHome(); }
+
+        void onHome(CCObject*) { showPlaza(); }
 
         void onWorkshop(CCObject*) {
             showInfo("VERSUS WORKSHOP", "COMMUNITY CONTENT",
-                "WORKSHOP SERVICE NOT CONNECTED",
-                "The Geometry Dash-style Workshop entry is now in the lobby.",
-                "Publishing and browsing need a hosted catalog and upload service; no fake listings are shown.");
+                "WORKSHOP NOT AVAILABLE YET",
+                "This button now opens the Workshop status page.",
+                "A real catalog, safe uploads, moderation, and hosting are still needed.");
         }
 
         void onVoice(CCObject*) {
             s_screen = Screen::Online;
-            showInfo("VOICE CHAT", "GLOBED AUDIO", "GLOBED VOICE CHAT",
-                "Globed provides in-game voice chat and emotes.",
-                "Use Globed's in-level voice controls while playing together.");
+            basePage("VOICE CHAT", "VOICE SETUP AND SAFETY");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto mid = h * 0.57f;
+            addCard({w * 0.50f, mid}, {w * 0.86f, h * 0.34f}, {18,42,91,255});
+
+            char const* state = !globedInstalled() ? "GLOBED IS REQUIRED FOR VOICE" :
+                (!globedEnabled() ? "ENABLE GLOBED FIRST" :
+                (!globedLoaded() ? "WAITING FOR GLOBED" :
+                (!globedApiAvailable() ? "GLOBED API UNAVAILABLE" :
+                (!globedConnected() ? "CONNECT TO GLOBED" :
+                (globed::api::game::isActive() ? "VOICE CAN BE USED IN THIS LEVEL" :
+                    "JOIN A SHARED LEVEL FIRST")))));
+            label(state, 0.32f, {w * 0.50f, mid + h * 0.09f},
+                globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
+            label("Globed handles voice chat inside shared levels.", 0.27f,
+                {w * 0.50f, mid + h * 0.025f}, {225,235,250});
+            label("Set your push-to-talk and deafen keys in Globed settings.", 0.24f,
+                {w * 0.50f, mid - h * 0.035f}, {190,215,245});
+            label("Use mute / block / report controls when available.", 0.23f,
+                {w * 0.50f, mid - h * 0.085f}, {170,205,240});
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("ROOM STATUS", menu_selector(LobbyLayer::onRooms),
+                {w * 0.30f, 48.f}, "GJ_button_02.png", 0.43f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
+                {w * 0.70f, 48.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
         }
 
 
@@ -354,7 +414,7 @@ namespace Versus {
             s_screen=Screen::Online;
             if (!globedInstalled()) {
                 showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED NOT INSTALLED",
-                    "Install Globed 2.2.2 or newer to use online features.",
+                    "Install and enable Globed to use online features.",
                     "Versus Mode can still be used without Globed.");
                 return;
             }
@@ -364,8 +424,14 @@ namespace Versus {
                     "Then reopen Versus Mode.");
                 return;
             }
-            if (!globedLoaded() || !globedApiAvailable()) {
+            if (!globedLoaded()) {
                 showGlobedLoading();
+                return;
+            }
+            if (!globedApiAvailable()) {
+                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","SOFT LINK TABLE MISSING",
+                    "Globed loaded, but its exported Soft Link API table is unavailable.",
+                    "This needs an upstream Globed build with the API-export fix; a network reconnect will not repair it.");
                 return;
             }
             if (!globedConnected()) {
