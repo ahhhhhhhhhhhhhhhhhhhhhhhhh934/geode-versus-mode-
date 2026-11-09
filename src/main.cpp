@@ -820,7 +820,7 @@ namespace Versus {
             if (!globedApiAvailable() || !globedConnected()) {
                 showInfo("GLOBAL MATCHMAKING", "GLOBED NETWORK", "NOT CONNECTED",
                     "Connect to the Globed central server first.",
-                    "The global queue works across rooms once connected.");
+                    "Join or create a Globed room first, then return to Versus Lobby.");
                 return;
             }
             showQueueModes();
