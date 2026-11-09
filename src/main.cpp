@@ -1,6 +1,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <globed/soft-link/API.hpp>
+#include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
 
@@ -151,6 +152,13 @@ namespace Versus {
         CCSize m_size;
         CCLayer* m_page = nullptr;
         bool m_waitingForGlobed = false;
+        async::TaskHolder<web::WebResponse> m_queueTask;
+        std::string m_queueTicket;
+        std::string m_queueMode = "race";
+        std::string m_queueState;
+        float m_queuePollTimer = 0.f;
+        bool m_queueRequestPending = false;
+
         float m_globedWait = 0.f;
         float m_loadingPulse = 0.f;
         CCLabelBMFont* m_loadingLabel = nullptr;
@@ -158,6 +166,13 @@ namespace Versus {
 
         void update(float dt) override {
             CCLayer::update(dt);
+            if (!m_queueTicket.empty() && !m_queueRequestPending) {
+                m_queuePollTimer += dt;
+                if (m_queuePollTimer >= 2.f) {
+                    m_queuePollTimer = 0.f;
+                    pollGlobalQueue();
+                }
+            }
             if (!m_waitingForGlobed) return;
             m_globedWait += dt;
             m_loadingPulse += dt;
@@ -566,46 +581,228 @@ namespace Versus {
                 "Local match setup is being built.",
                 "Two independent player controls are still needed.");
         }
+        void showQueueModes() {
+            s_screen = Screen::Online;
+            basePage("GLOBAL MATCHMAKING", "FIND A PLAYER FROM ANY GLOBED ROOM");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            addCard({w * 0.50f, h * 0.62f}, {w * 0.88f, h * 0.30f}, {16, 39, 75, 250});
+            label("SELECT YOUR GAME MODE", 0.36f, {w * 0.50f, h * 0.72f}, {255,224,110});
+            label("Casual queue  •  global pairing  •  ready check", 0.24f,
+                {w * 0.50f, h * 0.64f}, {190,215,245});
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("RACE", menu_selector(LobbyLayer::onQueueRace),
+                {w * 0.28f, h * 0.52f}, "GJ_button_05.png", 0.50f));
+            menu->addChild(button("SURVIVAL", menu_selector(LobbyLayer::onQueueSurvival),
+                {w * 0.72f, h * 0.52f}, "GJ_button_05.png", 0.50f));
+            menu->addChild(button("DUAL", menu_selector(LobbyLayer::onQueueDual),
+                {w * 0.28f, h * 0.40f}, "GJ_button_04.png", 0.50f));
+            menu->addChild(button("PLATFORMER", menu_selector(LobbyLayer::onQueuePlatformer),
+                {w * 0.72f, h * 0.40f}, "GJ_button_04.png", 0.43f));
+            menu->addChild(button("BACK", menu_selector(LobbyLayer::onBack),
+                {w * 0.50f, 42.f}, "GJ_button_01.png", 0.48f));
+            m_page->addChild(menu, 5);
+        }
+
+        void showQueueStatus(char const* title, char const* detail, char const* extra) {
+            s_screen = Screen::Online;
+            basePage("GLOBAL MATCHMAKING", "CROSS-ROOM QUEUE");
+            auto mid = m_size.height / 2.f;
+            addCard({m_size.width/2.f, mid+8.f}, {m_size.width*0.86f, 154.f}, {18, 42, 91, 255});
+            label(title, 0.40f, {m_size.width/2.f, mid+50.f}, {255,220,105});
+            label(detail, 0.27f, {m_size.width/2.f, mid+12.f}, {225,235,250});
+            label(extra, 0.23f, {m_size.width/2.f, mid-24.f}, {165,205,245});
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("CANCEL QUEUE", menu_selector(LobbyLayer::onCancelQueue),
+                {m_size.width/2.f, 48.f}, "GJ_button_01.png", 0.55f));
+            m_page->addChild(menu, 5);
+        }
+
+        std::string matchmakingEndpoint() {
+            auto endpoint = Mod::get()->getSettingValue<std::string>("matchmaking-url");
+            while (!endpoint.empty() && endpoint.back() == '/') endpoint.pop_back();
+            return endpoint;
+        }
+
+        void queueForMode(char const* mode) {
+            if (!globedLoaded() || !globedApiAvailable() || !globedConnected()) {
+                showInfo("GLOBAL MATCHMAKING", "GLOBED REQUIRED", "NOT CONNECTED",
+                    "Connect to Globed before entering the global queue.",
+                    "Your current private room does not limit who can be matched.");
+                return;
+            }
+            auto endpoint = matchmakingEndpoint();
+            if (endpoint.empty()) {
+                showInfo("GLOBAL MATCHMAKING", "SERVER NOT CONFIGURED", "BACKEND URL MISSING",
+                    "The queue client is ready, but the public service URL is not configured.",
+                    "The backend must be deployed before this can connect.");
+                return;
+            }
+            m_queueMode = mode;
+            m_queueTicket.clear();
+            m_queueState = "joining";
+            m_queueRequestPending = true;
+            showQueueStatus("JOINING GLOBAL QUEUE", "Contacting matchmaking service...", mode);
+            auto req = web::WebRequest();
+            req.header("Content-Type", "application/json");
+            req.timeout(std::chrono::seconds(12));
+            req.bodyString(fmt::format(R"({{"mode":"{}","region":"global","ranked":false}})", mode));
+            m_queueTask.spawn(req.post(endpoint + "/queue/join"),
+                [this](web::WebResponse res) {
+                    m_queueRequestPending = false;
+                    if (!res.ok()) {
+                        auto message = res.string().unwrapOr("No response body");
+                        showInfo("GLOBAL MATCHMAKING", "QUEUE REQUEST FAILED",
+                            fmt::format("HTTP {}", res.code()).c_str(), message.c_str(),
+                            "Check the backend deployment and try again.");
+                        return;
+                    }
+                    auto parsed = res.json();
+                    if (!parsed) {
+                        showInfo("GLOBAL MATCHMAKING", "INVALID SERVER RESPONSE", "BAD JSON",
+                            "The matchmaking server returned unreadable data.",
+                            "The queue was not started.");
+                        return;
+                    }
+                    auto data = parsed.unwrap();
+                    m_queueTicket = data["ticket"].asString().unwrapOr("");
+                    auto state = data["state"].asString().unwrapOr("unknown");
+                    if (m_queueTicket.empty()) {
+                        showInfo("GLOBAL MATCHMAKING", "QUEUE ERROR", "NO TICKET",
+                            "The service did not return a queue ticket.",
+                            "Try again after checking the backend logs.");
+                        return;
+                    }
+                    m_queueState = state;
+                    m_queuePollTimer = 2.f;
+                    if (state == "matched") {
+                        confirmGlobalMatch();
+                    } else {
+                        showQueueStatus("SEARCHING FOR PLAYER",
+                            "You're in the shared global queue.", m_queueMode.c_str());
+                    }
+                }
+            );
+        }
+
+        void pollGlobalQueue() {
+            auto endpoint = matchmakingEndpoint();
+            if (endpoint.empty() || m_queueTicket.empty() || m_queueRequestPending) return;
+            m_queueRequestPending = true;
+            auto req = web::WebRequest();
+            req.header("Authorization", "Bearer " + m_queueTicket);
+            req.timeout(std::chrono::seconds(10));
+            m_queueTask.spawn(req.get(endpoint + "/queue/status"),
+                [this](web::WebResponse res) {
+                    m_queueRequestPending = false;
+                    if (!res.ok()) {
+                        if (res.code() == 404) {
+                            m_queueTicket.clear();
+                            showInfo("GLOBAL MATCHMAKING", "QUEUE EXPIRED", "SEARCH ENDED",
+                                "Your queue ticket expired or the match was cleared.",
+                                "Join the global queue again to search.");
+                        }
+                        return;
+                    }
+                    auto parsed = res.json();
+                    if (!parsed) return;
+                    auto data = parsed.unwrap();
+                    auto state = data["state"].asString().unwrapOr("unknown");
+                    if (state == "ready-check") {
+                        m_queueState = state;
+                        confirmGlobalMatch();
+                    } else if (state == "ready") {
+                        m_queueState = state;
+                        showInfo("GLOBAL MATCHMAKING", "MATCH FOUND", "BOTH PLAYERS READY",
+                            "The global service paired you and both players accepted.",
+                            "Globed room/session handoff is the next integration step.");
+                        m_queuePollTimer = 99999.f;
+                    } else if (state == "cancelled" || state == "not_found") {
+                        m_queueTicket.clear();
+                        showInfo("GLOBAL MATCHMAKING", "MATCH CANCELLED", "QUEUE CLOSED",
+                            "The other player left or the match expired.",
+                            "Return to the plaza and search again.");
+                    }
+                }
+            );
+        }
+
+        void confirmGlobalMatch() {
+            if (m_queueTicket.empty() || m_queueRequestPending || m_queueState == "ready") return;
+            auto endpoint = matchmakingEndpoint();
+            if (endpoint.empty()) return;
+            m_queueRequestPending = true;
+            auto req = web::WebRequest();
+            req.header("Authorization", "Bearer " + m_queueTicket);
+            req.timeout(std::chrono::seconds(10));
+            m_queueTask.spawn(req.post(endpoint + "/match/ready"),
+                [this](web::WebResponse res) {
+                    m_queueRequestPending = false;
+                    if (!res.ok()) return;
+                    auto parsed = res.json();
+                    if (!parsed) return;
+                    auto data = parsed.unwrap();
+                    auto state = data["state"].asString().unwrapOr("ready-check");
+                    m_queueState = state;
+                    if (state == "ready") {
+                        showInfo("GLOBAL MATCHMAKING", "MATCH FOUND", "BOTH PLAYERS READY",
+                            "The global service paired you and both players accepted.",
+                            "Globed room/session handoff is the next integration step.");
+                        m_queuePollTimer = 99999.f;
+                    } else {
+                        showQueueStatus("MATCH FOUND",
+                            "Waiting for the other player to accept...", m_queueMode.c_str());
+                    }
+                }
+            );
+        }
+
+        void leaveGlobalQueue() {
+            if (m_queueTicket.empty()) {
+                showQueueModes();
+                return;
+            }
+            auto endpoint = matchmakingEndpoint();
+            auto ticket = m_queueTicket;
+            m_queueTicket.clear();
+            m_queueState.clear();
+            m_queuePollTimer = 0.f;
+            if (!endpoint.empty()) {
+                auto req = web::WebRequest();
+                req.header("Authorization", "Bearer " + ticket);
+                req.timeout(std::chrono::seconds(8));
+                m_queueTask.spawn(req.post(endpoint + "/queue/leave"), [](web::WebResponse) {});
+            }
+            showQueueModes();
+        }
+
+        void onQueueRace(CCObject*) { queueForMode("race"); }
+        void onQueueSurvival(CCObject*) { queueForMode("survival"); }
+        void onQueueDual(CCObject*) { queueForMode("dual"); }
+        void onQueuePlatformer(CCObject*) { queueForMode("platformer"); }
+        void onCancelQueue(CCObject*) { leaveGlobalQueue(); }
+
         void onOnline(CCObject*) {
-            s_screen=Screen::Online;
-            if (!globedInstalled()) {
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED NOT INSTALLED",
-                    "Install and enable Globed to use online features.",
-                    "Versus Mode can still be used without Globed.");
+            if (!globedInstalled() || !globedEnabled() || !globedLoaded()) {
+                if (!globedInstalled()) {
+                    showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED NOT INSTALLED",
+                        "Install and enable Globed to use online features.",
+                        "Versus Mode can still be used without Globed.");
+                } else if (!globedEnabled()) {
+                    showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED IS DISABLED",
+                        "Enable Globed in the Geode mod list.","Then reopen Versus Mode.");
+                } else showGlobedLoading();
                 return;
             }
-            if (!globedEnabled()) {
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","GLOBED IS DISABLED",
-                    "Enable Globed in the Geode mod list.",
-                    "Then reopen Versus Mode.");
+            if (!globedApiAvailable() || !globedConnected()) {
+                showInfo("GLOBAL MATCHMAKING", "GLOBED NETWORK", "NOT CONNECTED",
+                    "Connect to the Globed central server first.",
+                    "The global queue works across rooms once connected.");
                 return;
             }
-            if (!globedLoaded()) {
-                showGlobedLoading();
-                return;
-            }
-            if (!globedConnected()) {
-                auto connection = globedConnectionStateName();
-                auto status = std::string(connection) == "RECONNECTING" ? "GLOBED RECONNECTING" : "NOT CONNECTED";
-                auto detail = std::string(connection) == "RECONNECTING"
-                    ? "Globed reports that its server connection is being restored after a timeout."
-                    : "Globed currently reports no central server connection.";
-                showInfo("ONLINE VERSUS","GLOBED NETWORK",status,
-                    detail,
-                    "Versus can display Globed's state, but cannot repair a timeout inside Globed or its server.");
-                return;
-            }
-            if (!globedInRoom()) {
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","CONNECTED TO GLOBED",
-                    "You are not inside a private room yet.",
-                    "Join or create a Globed room, then return here.");
-                return;
-            }
-            auto roomId = globedRoomId();
-            auto status = fmt::format("ROOM {}", roomId);
-            auto detail = std::string("Globed room detected through its linked API.");
-            showInfo("ONLINE VERSUS","GLOBED ROOM DETECTED",status.c_str(),
-                detail.c_str(),"Room creation and matchmaking are not part of the Globed integration yet.");
+            showQueueModes();
         }
         void onBack(CCObject*) { showHome(); }
         void onClose(CCObject*) { CCDirector::sharedDirector()->popScene(); }
