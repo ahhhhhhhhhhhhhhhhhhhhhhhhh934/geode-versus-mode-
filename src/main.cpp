@@ -6,10 +6,21 @@ using namespace geode::prelude;
 
 namespace Versus {
     static bool globedLoaded();
-    // Use Globed's Soft Link API. Globed 2.3.0 fixes the missing exported API table
-    // reported by the user's 2.2.2 log; this avoids ABI-sensitive direct linking.
+    // Probe only the public Soft Link API. Keep the exact dependency version
+    // visible in diagnostics so an unavailable table is not misdiagnosed as a
+    // network disconnect.
     static bool globedApiAvailable() {
-        return globedLoaded() && globed::api::available();
+        if (!globedLoaded()) return false;
+        const bool available = globed::api::available();
+        static bool loggedUnavailable = false;
+        if (!available && !loggedUnavailable) {
+            loggedUnavailable = true;
+            auto* mod = geode::Loader::get()->getInstalledMod("dankmeme.globed2");
+            auto version = mod ? mod->getVersion().toString() : std::string("not installed");
+            log::warn("Versus: Globed {} is loaded, but getRootTable() did not return an API table. This is an API-export/loader issue, not a server connection state.", version);
+        }
+        if (available) loggedUnavailable = false;
+        return available;
     }
 
     static bool globedConnected() {
@@ -287,7 +298,7 @@ namespace Versus {
             menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
                 {w * 0.50f, 42.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.6.1", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.6.4", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void showPlaza() {
