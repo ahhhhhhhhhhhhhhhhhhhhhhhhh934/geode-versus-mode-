@@ -54,6 +54,29 @@ namespace Versus {
             globedConnected();
     }
 
+    static bool globedHasApiExportFix() {
+        return globedInstalled() && globed::api::isAtLeast("v2.3.0");
+    }
+
+    static char const* globedConnectionStateName() {
+        if (!globedApiAvailable()) return "API UNAVAILABLE";
+        switch (globed::api::net::getConnectionState()) {
+            case globed::ConnectionState::Disconnected: return "DISCONNECTED";
+            case globed::ConnectionState::DnsResolving: return "DNS RESOLVING";
+            case globed::ConnectionState::Pinging: return "PINGING";
+            case globed::ConnectionState::Connecting: return "CONNECTING";
+            case globed::ConnectionState::Authenticating: return "AUTHENTICATING";
+            case globed::ConnectionState::Connected: return "CONNECTED";
+            case globed::ConnectionState::Closing: return "CLOSING";
+            case globed::ConnectionState::Reconnecting: return "RECONNECTING";
+            default: return "UNKNOWN";
+        }
+    }
+
+    static uint32_t globedCentralPing() {
+        return globedApiAvailable() ? globed::api::net::getCentralPingMs() : 0;
+    }
+
     struct RankTier {
         char const* name;
         int minimumPoints;
@@ -175,12 +198,13 @@ namespace Versus {
                         "Geode has not finished loading the Globed mod.",
                         "Enable Globed in Geode, then restart Geometry Dash.");
                 } else {
-                    auto mod = getGlobedMod();
-                    auto version = mod ? "installed" : "unknown";
-                    log::warn("Versus: Globed loaded ({}), but its exported Soft Link API table was not returned.", version);
+                    log::warn("Versus: Globed loaded, but its exported Soft Link API table was not returned.");
+                    auto extra = globedHasApiExportFix()
+                        ? "This Globed version should include the v2.3.0 export fix; check that the installed mod is the expected build."
+                        : "Your log shows Globed 2.2.2. The API-export fix is listed in the upstream v2.3.0 changes; update Globed to a build containing it.";
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
-                        "Geode loaded Globed, but its exported API table was not returned.",
-                        "Your Globed build may not export the Soft Link API. Use an upstream build that includes the API-export fix.");
+                        "Globed loaded, but Versus cannot access its exported API table.",
+                        extra);
                 }
             }
         }
@@ -247,8 +271,8 @@ namespace Versus {
             char const* network = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globedApiAvailable() ? "GLOBED API NEEDS UPDATE" :
-                (globedConnected() ? "CONNECTED" : "GLOBED OFFLINE"))));
+                (!globedApiAvailable() ? (globedHasApiExportFix() ? "API EXPORT MISSING" : "UPDATE GLOBED 2.3.0+") :
+                globedConnectionStateName())));
             label(network, 0.27f, {w * 0.63f, h - 91.f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
@@ -292,12 +316,13 @@ namespace Versus {
                 {w * 0.50f, h * 0.80f}, {255,224,110});
             label(fmt::format("{}  •  {} RANK POINTS", rankName(rankPoints()), rankPoints()).c_str(),
                 0.28f, {w * 0.50f, h * 0.72f}, {145,220,255});
-            char const* state = !globedInstalled() ? "GLOBED NOT INSTALLED" :
+            std::string state = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globedApiAvailable() ? "UPDATE GLOBED: API EXPORT FIX REQUIRED" :
-                (globedConnected() ? "GLOBED CONNECTED" : "GLOBED OFFLINE"))));
-            label(state, 0.23f, {w * 0.50f, h * 0.65f},
+                (!globedApiAvailable()
+                    ? (globedHasApiExportFix() ? "SOFT LINK EXPORT MISSING" : "UPDATE GLOBED: v2.3.0 API FIX")
+                    : fmt::format("GLOBED {}  •  {} MS", globedConnectionStateName(), globedCentralPing()))));
+            label(state.c_str(), 0.23f, {w * 0.50f, h * 0.65f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
             auto* menu = CCMenu::create();
@@ -569,15 +594,23 @@ namespace Versus {
                 return;
             }
             if (!globedApiAvailable()) {
+                auto detail = globedHasApiExportFix()
+                    ? "This Globed build should contain the API-export fix, but the table is still unavailable."
+                    : "Your uploaded log shows Globed 2.2.2. The upstream v2.3.0 changes include the missing API-export fix.";
                 showInfo("ONLINE VERSUS","GLOBED INTEGRATION","SOFT LINK TABLE MISSING",
-                    "Globed loaded, but its exported Soft Link API table is unavailable.",
-                    "This needs an upstream Globed build with the API-export fix; a network reconnect will not repair it.");
+                    "Globed loaded, but Versus cannot access its exported API table.",
+                    detail);
                 return;
             }
             if (!globedConnected()) {
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","NOT CONNECTED",
-                    "Globed is installed, but you are not connected.",
-                    "Connect through Globed, then reopen this screen.");
+                auto connection = globedConnectionStateName();
+                auto status = std::string(connection) == "RECONNECTING" ? "GLOBED RECONNECTING" : "NOT CONNECTED";
+                auto detail = std::string(connection) == "RECONNECTING"
+                    ? "Globed reports that its server connection is being restored after a timeout."
+                    : "Globed currently reports no central server connection.";
+                showInfo("ONLINE VERSUS","GLOBED NETWORK",status,
+                    detail.c_str(),
+                    "Versus can display Globed's state, but cannot repair a timeout inside Globed or its server.");
                 return;
             }
             if (!globedInRoom()) {
