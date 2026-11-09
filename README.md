@@ -2,9 +2,9 @@
 
 A Geometry Dash competition hub for Geode, targeting Geometry Dash **2.2081**, Geode **5.11.2**, Android64.
 
-## v0.6.4 — Stable Globed 2.2.2
+## v0.6.5 — Stable Globed 2.2.2
 
-This development release pins the required Globed dependency and public headers to stable **2.2.2**.
+This release pins the required Globed dependency and public headers to stable **2.2.2**.
 
 - Globed is a required dependency.
 - CMake and Geode metadata both require Globed 2.2.2.
