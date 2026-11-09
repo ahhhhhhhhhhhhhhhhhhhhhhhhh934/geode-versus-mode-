@@ -27,7 +27,7 @@ namespace Versus {
         return globed::api::game::getPlayerCount();
     }
 
-    enum class Screen { Home, Local, Online, Loading };
+    enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
     static Screen s_screen = Screen::Home;
 
     static geode::Mod* getGlobedMod() {
@@ -52,6 +52,44 @@ namespace Versus {
     static bool globedReady() {
         return globedLoaded() && globedApiAvailable() &&
             globedConnected();
+    }
+
+    struct RankTier {
+        char const* name;
+        int minimumPoints;
+        ccColor3B color;
+    };
+
+    // The ladder uses Geometry Dash's real classic difficulty names.
+    // Points are local until a Versus match server exists to verify results.
+    static RankTier const kRankTiers[] = {
+        {"AUTO", 0, {155, 165, 180}},
+        {"EASY", 100, {95, 220, 125}},
+        {"NORMAL", 250, {95, 185, 245}},
+        {"HARD", 450, {255, 205, 85}},
+        {"HARDER", 700, {255, 145, 70}},
+        {"INSANE", 1000, {220, 105, 245}},
+        {"EASY DEMON", 1400, {255, 85, 95}},
+        {"MEDIUM DEMON", 1850, {235, 70, 80}},
+        {"HARD DEMON", 2350, {205, 55, 75}},
+        {"INSANE DEMON", 2900, {175, 45, 85}},
+        {"EXTREME DEMON", 3500, {255, 55, 65}}
+    };
+
+    static int rankPoints() {
+        return std::max(0, Mod::get()->getSavedValue<int>("rank-points", 0));
+    }
+
+    static size_t rankTierIndex(int points) {
+        size_t tier = 0;
+        for (size_t i = 0; i < sizeof(kRankTiers) / sizeof(kRankTiers[0]); ++i) {
+            if (points >= kRankTiers[i].minimumPoints) tier = i;
+        }
+        return tier;
+    }
+
+    static char const* rankName(int points) {
+        return points <= 0 ? "UNRANKED" : kRankTiers[rankTierIndex(points)].name;
     }
 
     class LobbyLayer final : public CCLayer {
@@ -197,10 +235,9 @@ namespace Versus {
 
         void showHome() {
             s_screen = Screen::Home;
-            basePage("VERSUS MODE", "COMPETE  •  CONNECT  •  PLAY");
+            basePage("VERSUS MODE", "COMPETE  •  CONNECT  •  CLIMB");
             auto w = m_size.width;
             auto h = m_size.height;
-            auto mid = h * 0.54f;
 
             auto* status = CCLayerColor::create({12, 25, 52, 248}, w * 0.88f, 42.f);
             status->setPosition({w * 0.06f, h - 112.f});
@@ -209,80 +246,168 @@ namespace Versus {
             char const* network = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globedApiAvailable() ? "GLOBED API UNAVAILABLE" :
-                (globedConnected() ? "CONNECTED" : "OFFLINE"))));
-            label(network, 0.29f, {w * 0.63f, h - 91.f},
+                (!globedApiAvailable() ? "GLOBED API NEEDS UPDATE" :
+                (globedConnected() ? "CONNECTED" : "GLOBED OFFLINE"))));
+            label(network, 0.27f, {w * 0.63f, h - 91.f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
-            auto* hero = CCLayerColor::create({15, 38, 76, 248}, w * 0.86f, h * 0.34f);
-            hero->setPosition({w * 0.07f, mid - h * 0.12f});
+            auto* hero = CCLayerColor::create({15, 38, 76, 248}, w * 0.86f, h * 0.39f);
+            hero->setPosition({w * 0.07f, h * 0.34f});
             m_page->addChild(hero, 0);
             auto* heroLine = CCLayerColor::create({62,175,245,255}, w * 0.86f, 3.f);
-            heroLine->setPosition({w * 0.07f, mid + h * 0.22f - 3.f});
+            heroLine->setPosition({w * 0.07f, h * 0.34f + h * 0.39f - 3.f});
             m_page->addChild(heroLine, 1);
             label("YOUR NEXT MATCH STARTS HERE", 0.39f,
-                {w * 0.50f, mid + h * 0.14f}, {255,224,110});
-            label("Choose a destination", 0.30f,
-                {w * 0.50f, mid + h * 0.075f}, {195,218,245});
+                {w * 0.50f, h * 0.67f}, {255,224,110});
+            label("A new home for Geometry Dash competition", 0.27f,
+                {w * 0.50f, h * 0.60f}, {195,218,245});
+            label(fmt::format("{}  •  {} RP", rankName(rankPoints()), rankPoints()).c_str(),
+                0.30f, {w * 0.50f, h * 0.51f}, {145,220,255});
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
-            menu->addChild(button("OPEN PLAZA", menu_selector(LobbyLayer::onHome),
-                {w * 0.50f, mid - h * 0.005f}, "GJ_button_05.png", 0.70f));
-            menu->addChild(button("ONLINE VERSUS", menu_selector(LobbyLayer::onOnline),
-                {w * 0.50f, mid - h * 0.105f}, "GJ_button_04.png", 0.62f));
-            menu->addChild(button("LOCAL", menu_selector(LobbyLayer::onLocal),
-                {w * 0.25f, h * 0.245f}, "GJ_button_01.png", 0.48f));
-            menu->addChild(button("ROOMS", menu_selector(LobbyLayer::onRooms),
-                {w * 0.50f, h * 0.245f}, "GJ_button_02.png", 0.48f));
-            menu->addChild(button("VOICE", menu_selector(LobbyLayer::onVoice),
-                {w * 0.75f, h * 0.245f}, "GJ_button_03.png", 0.48f));
-            menu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
-                {w * 0.50f, h * 0.145f}, "GJ_button_01.png", 0.48f));
+            menu->addChild(button("OPEN PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.50f, h * 0.43f}, "GJ_button_05.png", 0.66f));
+            menu->addChild(button("RANKS", menu_selector(LobbyLayer::onRanked),
+                {w * 0.27f, h * 0.25f}, "GJ_button_02.png", 0.48f));
+            menu->addChild(button("ROOMS", menu_selector(LobbyLayer::onPublicRooms),
+                {w * 0.50f, h * 0.25f}, "GJ_button_04.png", 0.48f));
+            menu->addChild(button("PROFILE", menu_selector(LobbyLayer::onProfile),
+                {w * 0.73f, h * 0.25f}, "GJ_button_03.png", 0.48f));
             menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
-                {w * 0.50f, 48.f}, "GJ_button_01.png", 0.48f));
+                {w * 0.50f, 42.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
-
-            label("VERSUS MODE  •  v0.5.0", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.6.0", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void showPlaza() {
-            s_screen = Screen::Home;
-            basePage("PLAZA", "YOUR MULTIPLAYER HUB");
+            s_screen = Screen::Plaza;
+            basePage("PLAZA", "THE VERSUS COMMUNITY HUB");
             auto w = m_size.width;
             auto h = m_size.height;
-            auto* card = CCLayerColor::create({16, 39, 75, 250}, w * 0.86f, h * 0.36f);
-            card->setPosition({w * 0.07f, h * 0.43f});
-            m_page->addChild(card, 0);
+
+            addCard({w * 0.50f, h * 0.72f}, {w * 0.88f, h * 0.25f}, {16, 39, 75, 250});
             label("WELCOME TO THE PLAZA", 0.42f,
-                {w * 0.50f, h * 0.73f}, {255,224,110});
-            label("Meet up, check your connection, and get ready to play.", 0.25f,
-                {w * 0.50f, h * 0.66f}, {195,218,245});
-            char const* state = !globedInstalled() ? "Install Globed for online features" :
-                (!globedEnabled() ? "Globed is disabled" :
-                (!globedLoaded() ? "Globed is still loading" :
-                (!globedApiAvailable() ? "Globed API is unavailable" :
-                (globedConnected() ? "Globed: connected" : "Globed: not connected"))));
-            label(state, 0.29f, {w * 0.50f, h * 0.59f},
+                {w * 0.50f, h * 0.80f}, {255,224,110});
+            label(fmt::format("{}  •  {} RANK POINTS", rankName(rankPoints()), rankPoints()).c_str(),
+                0.28f, {w * 0.50f, h * 0.72f}, {145,220,255});
+            char const* state = !globedInstalled() ? "GLOBED NOT INSTALLED" :
+                (!globedEnabled() ? "GLOBED DISABLED" :
+                (!globedLoaded() ? "GLOBED STARTING" :
+                (!globedApiAvailable() ? "UPDATE GLOBED: API EXPORT FIX REQUIRED" :
+                (globedConnected() ? "GLOBED CONNECTED" : "GLOBED OFFLINE"))));
+            label(state, 0.23f, {w * 0.50f, h * 0.65f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button("FIND MATCH", menu_selector(LobbyLayer::onOnline),
-                {w * 0.50f, h * 0.48f}, "GJ_button_05.png", 0.58f));
-            menu->addChild(button("ROOM STATUS", menu_selector(LobbyLayer::onRooms),
-                {w * 0.28f, h * 0.36f}, "GJ_button_02.png", 0.43f));
-            menu->addChild(button("VOICE SETUP", menu_selector(LobbyLayer::onVoice),
-                {w * 0.72f, h * 0.36f}, "GJ_button_03.png", 0.43f));
-            menu->addChild(button("WORKSHOP", menu_selector(LobbyLayer::onWorkshop),
-                {w * 0.50f, h * 0.25f}, "GJ_button_01.png", 0.45f));
+                {w * 0.50f, h * 0.53f}, "GJ_button_05.png", 0.56f));
+            menu->addChild(button("RANKED", menu_selector(LobbyLayer::onRanked),
+                {w * 0.27f, h * 0.41f}, "GJ_button_02.png", 0.44f));
+            menu->addChild(button("PUBLIC ROOMS", menu_selector(LobbyLayer::onPublicRooms),
+                {w * 0.73f, h * 0.41f}, "GJ_button_04.png", 0.42f));
+            menu->addChild(button("GROUP ROOMS", menu_selector(LobbyLayer::onGroupRooms),
+                {w * 0.27f, h * 0.30f}, "GJ_button_01.png", 0.42f));
+            menu->addChild(button("LIVE", menu_selector(LobbyLayer::onLive),
+                {w * 0.73f, h * 0.30f}, "GJ_button_03.png", 0.44f));
+            menu->addChild(button("PROFILE", menu_selector(LobbyLayer::onProfile),
+                {w * 0.50f, h * 0.19f}, "GJ_button_02.png", 0.42f));
             menu->addChild(button("HOME", menu_selector(LobbyLayer::onDashboard),
-                {w * 0.50f, 48.f}, "GJ_button_01.png", 0.45f));
+                {w * 0.50f, 38.f}, "GJ_button_01.png", 0.43f));
             m_page->addChild(menu, 5);
         }
 
+        void showRanked() {
+            s_screen = Screen::Ranked;
+            basePage("RANKED", "GEOMETRY DASH DIFFICULTY LADDER");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            int points = rankPoints();
+            size_t current = rankTierIndex(points);
+            addCard({w * 0.50f, h * 0.83f}, {w * 0.88f, h * 0.16f}, {16, 39, 75, 250});
+            label(fmt::format("{}  •  {} RP", rankName(points), points).c_str(),
+                0.34f, {w * 0.50f, h * 0.85f}, {255,224,110});
+            label("Local ladder preview — online rating is not synced yet", 0.21f,
+                {w * 0.50f, h * 0.80f}, {185,210,245});
+
+            auto count = sizeof(kRankTiers) / sizeof(kRankTiers[0]);
+            for (size_t i = 0; i < count; ++i) {
+                auto column = i % 2;
+                auto row = i / 2;
+                float x = column == 0 ? w * 0.27f : w * 0.73f;
+                float y = h * 0.68f - static_cast<float>(row) * h * 0.085f;
+                auto const& tier = kRankTiers[i];
+                bool active = points >= tier.minimumPoints &&
+                    (i + 1 == count || points < kRankTiers[i + 1].minimumPoints);
+                auto* tile = CCLayerColor::create(
+                    active ? ccColor4B{tier.color.r, tier.color.g, tier.color.b, 255}
+                           : ccColor4B{20, 34, 58, 245},
+                    w * 0.43f, h * 0.065f
+                );
+                tile->setPosition({x - w * 0.215f, y - h * 0.0325f});
+                m_page->addChild(tile, 1);
+                label(tier.name, 0.23f, {x, y + 2.f},
+                    active ? ccColor3B{255,255,255} : tier.color);
+                label(fmt::format("{} RP", tier.minimumPoints).c_str(),
+                    0.16f, {x, y - h * 0.022f}, {185,205,230});
+            }
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.50f, 35.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
+        }
+
+        void showProfile() {
+            s_screen = Screen::Profile;
+            basePage("PLAYER PROFILE", "YOUR VERSUS IDENTITY");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            addCard({w * 0.50f, h * 0.60f}, {w * 0.86f, h * 0.42f}, {18,42,91,255});
+            label("LOCAL PLAYER", 0.38f, {w * 0.50f, h * 0.75f}, {255,224,110});
+            label(fmt::format("RANK  {}", rankName(rankPoints())).c_str(),
+                0.32f, {w * 0.50f, h * 0.65f}, {145,220,255});
+            label(fmt::format("{} RANK POINTS", rankPoints()).c_str(),
+                0.27f, {w * 0.50f, h * 0.56f}, {225,235,250});
+            label("Online profiles, records and statistics need the Versus server.", 0.22f,
+                {w * 0.50f, h * 0.46f}, {180,205,235});
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("RANKS", menu_selector(LobbyLayer::onRanked),
+                {w * 0.30f, 38.f}, "GJ_button_02.png", 0.43f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.70f, 38.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
+        }
+
+        void showPublicRooms() {
+            s_screen = Screen::PublicRooms;
+            showInfo("PUBLIC ROOMS", "ROOM BROWSER",
+                "ROOM DIRECTORY NOT CONNECTED",
+                "Globed can show its own rooms, but Versus does not have a room-list service yet.",
+                "This page will not invent rooms or show fake player counts.");
+        }
+
+        void showGroupRooms() {
+            s_screen = Screen::GroupRooms;
+            showInfo("GROUP ROOMS", "PLAY WITH MORE PEOPLE",
+                "GROUP MATCHMAKING NOT CONNECTED",
+                "The room interface is planned, but no Versus group-room server exists yet.",
+                "Globed room data alone is not a Versus group match.");
+        }
+
+        void showLive() {
+            s_screen = Screen::Live;
+            showInfo("LIVE", "WATCH ACTIVE MATCHES",
+                "LIVE FEED NOT CONNECTED",
+                "Spectating needs a Versus match feed and spectator protocol.",
+                "No live matches can be listed until that service is built.");
+        }
+
         void showRooms() {
-            s_screen = Screen::Online;
+            s_screen = Screen::Rooms;
             basePage("ROOM STATUS", "GLOBED CONNECTION INFORMATION");
             auto w = m_size.width;
             auto h = m_size.height;
@@ -314,7 +439,7 @@ namespace Versus {
             menu->setPosition({0,0});
             menu->addChild(button("REFRESH", menu_selector(LobbyLayer::onRooms),
                 {w * 0.32f, 48.f}, "GJ_button_05.png", 0.48f));
-            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
                 {w * 0.68f, 48.f}, "GJ_button_01.png", 0.48f));
             m_page->addChild(menu, 5);
         }
@@ -323,7 +448,12 @@ namespace Versus {
 
         void onDashboard(CCObject*) { showHome(); }
 
-        void onHome(CCObject*) { showPlaza(); }
+        void onOpenPlaza(CCObject*) { showPlaza(); }
+        void onRanked(CCObject*) { showRanked(); }
+        void onProfile(CCObject*) { showProfile(); }
+        void onPublicRooms(CCObject*) { showPublicRooms(); }
+        void onGroupRooms(CCObject*) { showGroupRooms(); }
+        void onLive(CCObject*) { showLive(); }
 
         void onWorkshop(CCObject*) {
             showInfo("VERSUS WORKSHOP", "COMMUNITY CONTENT",
@@ -333,7 +463,7 @@ namespace Versus {
         }
 
         void onVoice(CCObject*) {
-            s_screen = Screen::Online;
+            s_screen = Screen::Voice;
             basePage("VOICE CHAT", "VOICE SETUP AND SAFETY");
             auto w = m_size.width;
             auto h = m_size.height;
@@ -393,6 +523,7 @@ namespace Versus {
         }
 
         void showInfo(char const* title, char const* subtitle, char const* status, char const* detail, char const* extra) {
+            s_screen = Screen::Info;
             basePage(title,subtitle);
             auto mid=m_size.height/2;
             addCard({m_size.width/2,mid},{m_size.width*0.84f,148.f},{18,38,72,250});
@@ -472,13 +603,17 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
         // Use Geometry Dash's own Versus icon frame instead of a generic
         // ButtonSprite. Keep a stock GD tile as the button's backing plate.
         auto* tile = CCSprite::createWithSpriteFrameName("GJ_versusBtn_001.png");
+        if (!tile) tile = CCSprite::createWithSpriteFrameName("GJ_createBtn_001.png");
+        // A missing atlas frame must never create a null, untappable menu item.
         if (!tile) {
-            // Fallback if a particular GD texture pack omits the frame.
-            tile = CCSprite::createWithSpriteFrameName("GJ_createBtn_001.png");
+            tile = ButtonSprite::create("VERSUS", 50, true, "goldFont.fnt",
+                "GJ_button_05.png", 40.f, 0.62f);
         }
+        if (!tile) return true;
         auto* item = CCMenuItemSpriteExtra::create(
             tile, this, menu_selector(VersusCreatorLayer::onVersus)
         );
+        if (!item) return true;
         item->setID("versus-mode-button");
         // CreatorLayer's stock grid tiles are rendered at 80% of atlas size.
         // Apply the same scale to the native Versus tile, not a text ButtonSprite.
