@@ -1,4 +1,4 @@
-name: Publish Versus Mode v0.6.1
+name: Publish Versus Mode v0.6.2
 
 on:
   push:
@@ -34,8 +34,8 @@ jobs:
       - name: Publish GitHub Release and attach .geode
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.6.1
-          name: Versus Mode v0.6.1
+          tag_name: v0.6.2
+          name: Versus Mode v0.6.2
           generate_release_notes: true
           files: build/versus.mode.geode
         env:
