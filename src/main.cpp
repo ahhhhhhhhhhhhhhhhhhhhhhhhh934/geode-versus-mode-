@@ -288,7 +288,7 @@ namespace Versus {
             menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
                 {w * 0.50f, 42.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.6.0", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.6.1", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void showPlaza() {
@@ -595,7 +595,7 @@ namespace Versus {
             auto status = fmt::format("ROOM {}", roomId);
             auto detail = std::string("Globed room detected through its linked API.");
             showInfo("ONLINE VERSUS","GLOBED ROOM DETECTED",status.c_str(),
-                detail.c_str(),"Room creation and matchmaking are not exposed by Soft Link.");
+                detail.c_str(),"Room creation and matchmaking are not part of the Globed integration yet.");
         }
         void onBack(CCObject*) { showHome(); }
         void onClose(CCObject*) { CCDirector::sharedDirector()->popScene(); }
