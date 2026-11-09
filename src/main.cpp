@@ -7,8 +7,7 @@ using namespace geode::prelude;
 
 namespace Versus {
     static bool globedLoaded();
-    // Globed 2.2.2's Soft Link API export is broken on the user's build.
-    // Use the version-matched Link API instead; this is a required dependency.
+    // Use Globed 2.2.2's direct Link API; the Soft Link export is broken in that build.
     static bool globedApiAvailable() {
         return globedLoaded();
     }
@@ -258,7 +257,7 @@ namespace Versus {
             char const* network = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                globedConnectionStateName())));
+                globedConnectionStateName()));
             label(network, 0.27f, {w * 0.63f, h - 91.f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
@@ -435,7 +434,7 @@ namespace Versus {
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED NOT LOADED" :
                 (!globedConnected() ? "NOT CONNECTED" :
-                (globedInRoom() ? "INSIDE A ROOM" : "CONNECTED  •  NO ROOM")))));
+                (globedInRoom() ? "INSIDE A ROOM" : "CONNECTED  •  NO ROOM"))));
             label(state, 0.37f, {w * 0.50f, mid + h * 0.075f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
