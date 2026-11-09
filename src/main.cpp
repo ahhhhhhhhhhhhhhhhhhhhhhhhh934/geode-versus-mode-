@@ -1,28 +1,28 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
-#include <globed/core/net/NetworkManager.hpp>
-#include <globed/core/RoomManager.hpp>
+#include <globed/soft-link/API.hpp>
 
 using namespace geode::prelude;
 
 namespace Versus {
     static bool globedLoaded();
-    // Use Globed 2.2.2's direct Link API; the Soft Link export is broken in that build.
+    // Use Globed's Soft Link API. Globed 2.3.0 fixes the missing exported API table
+    // reported by the user's 2.2.2 log; this avoids ABI-sensitive direct linking.
     static bool globedApiAvailable() {
-        return globedLoaded();
+        return globedLoaded() && globed::api::available();
     }
 
     static bool globedConnected() {
-        return globedLoaded() && globed::NetworkManager::get().isConnected();
+        return globedApiAvailable() && globed::api::net::isConnected();
     }
 
     static bool globedInRoom() {
-        return globedLoaded() && globed::RoomManager::get().isInRoom();
+        return globedApiAvailable() && globed::api::room::isInRoom();
     }
 
     static uint32_t globedRoomId() {
-        return globedLoaded() && globedInRoom()
-            ? globed::RoomManager::get().getRoomId() : 0;
+        return globedApiAvailable() && globedInRoom()
+            ? globed::api::room::getId() : 0;
     }
 
     enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
@@ -54,7 +54,7 @@ namespace Versus {
 
     static char const* globedConnectionStateName() {
         if (!globedLoaded()) return "GLOBED NOT LOADED";
-        switch (globed::NetworkManager::get().getConnectionState()) {
+        switch (globed::api::net::getConnectionState()) {
             case globed::ConnectionState::Disconnected: return "DISCONNECTED";
             case globed::ConnectionState::DnsResolving: return "DNS RESOLVING";
             case globed::ConnectionState::Pinging: return "PINGING";
@@ -166,7 +166,7 @@ namespace Versus {
                         auto roomId = globedRoomId();
                         auto status = fmt::format("ROOM {}", roomId);
                         showInfo("ONLINE VERSUS", "GLOBED ROOM READY", status.c_str(),
-                            "Globed's Link API is responding and your room is detected.",
+                            "Globed's Soft Link API is responding and your room is detected.",
                             "Matchmaking and Versus gameplay sync still need their own protocol.");
                     } else {
                         showInfo("ONLINE VERSUS", "GLOBED CONNECTION READY", "API CONNECTED",
@@ -187,9 +187,9 @@ namespace Versus {
                         "Geode has not finished loading the Globed mod.",
                         "Enable Globed in Geode, then restart Geometry Dash.");
                 } else {
-                    log::warn("Versus: Globed loaded but direct Link API dependency could not be queried.");
+                    log::warn("Versus: Globed loaded but its Soft Link API table could not be queried.");
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED API UNAVAILABLE",
-                        "Globed is loaded, but its linked API could not be called.",
+                        "Globed is loaded, but its Soft Link API could not be called.",
                         "Check that Globed v2.2.2 is installed and enabled, then send the new log if this persists.");
                 }
             }
@@ -441,7 +441,7 @@ namespace Versus {
             if (globedLoaded() && globedApiAvailable() && globedConnected() && globedInRoom()) {
                 auto roomText = fmt::format("ROOM ID  {}", globedRoomId());
                 label(roomText.c_str(), 0.30f, {w * 0.50f, mid + h * 0.005f}, {225,235,250});
-                label("ROOM DETECTED THROUGH GLOBED", 0.24f,
+                label("ROOM DETECTED THROUGH GLOBED API", 0.24f,
                     {w * 0.50f, mid - h * 0.055f}, {170,210,250});
             } else {
                 label("Join or create a room using Globed's own room menu.", 0.27f,
