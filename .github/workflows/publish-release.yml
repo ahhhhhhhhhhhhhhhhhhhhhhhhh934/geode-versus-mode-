@@ -1,0 +1,92 @@
+name: Publish Versus Mode Release
+
+on:
+  push:
+    branches:
+      - "overhaul/season-ranked-plaza"
+    paths:
+      - ".github/workflows/publish-release.yml"
+      - "src/**"
+      - "mod.json"
+      - "CMakeLists.txt"
+      - "README.md"
+      - "changelog.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Read release version from mod.json
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(jq -r '.version' mod.json)"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release version in mod.json: $VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build Android64 Geode package
+        id: build
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          sdk: given
+          target: Android64
+          path: .
+          build-config: Release
+          android-min-sdk: '24'
+
+      - name: Verify built package
+        shell: bash
+        run: |
+          PACKAGE="build/versus.mode.geode"
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! -s "$PACKAGE" ]]; then
+            echo "Build output missing or empty: $PACKAGE"
+            exit 1
+          fi
+          echo "Package size: $(stat -c%s "$PACKAGE") bytes"
+          unzip -p "$PACKAGE" mod.json > built-mod.json
+          BUILT_VERSION="$(jq -r '.version' built-mod.json)"
+          if [[ "$BUILT_VERSION" != "$VERSION" ]]; then
+            echo "Built package version ($BUILT_VERSION) does not match expected release version ($VERSION)"
+            exit 1
+          fi
+          GLOBED_VERSION="$(jq -r '.dependencies["dankmeme.globed2"].version' built-mod.json)"
+          if [[ "$GLOBED_VERSION" != "2.2.2" ]]; then
+            echo "Built package requires Globed $GLOBED_VERSION, expected 2.2.2"
+            exit 1
+          fi
+          echo "Verified package: Versus Mode $BUILT_VERSION, Globed dependency $GLOBED_VERSION"
+
+      - name: Reset release tag to the built commit
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git ls-remote --exit-code origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists - deleting it so the release anchors to commit $GITHUB_SHA that was actually built."
+            git push origin --delete "$VERSION"
+          else
+            echo "Tag $VERSION does not exist yet - it will be created at $GITHUB_SHA."
+          fi
+
+      - name: Publish GitHub Release and attach .geode
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Versus Mode ${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: build/versus.mode.geode
+          fail_on_unmatched_files: true
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

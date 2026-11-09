@@ -1,25 +1,22 @@
-# Geode Versus Mode — Android build project
+# Geode Versus Mode
 
-Target: Geometry Dash 2.2081 / Geode SDK latest stable / Android 64-bit.
+A Geometry Dash competition hub for Geode, targeting Geometry Dash **2.2081**, Geode **5.11.2**, Android64.
 
-## Current implementation status
-- Creator menu Versus entry: hooked into CreatorLayer (the Create/Saved/Scores/Quests screen).
-- Versus lobby screen: implemented in source.
-- Local 1v1: UI placeholder; independent player controls are not implemented.
-- Online 1v1: Globed status and room detection only; match protocol and synchronization are not implemented.
-- Voice chat: not implemented; Globed's audio API needs a separate audio integration.
-- Workshop: not implemented; Geode mod portal integration remains a separate task.
+## v0.6.5 — Stable Globed 2.2.2
 
-## Build an actual .geode package
-This repository includes a GitHub Actions workflow at .github/workflows/build-android.yml. Open **Actions → Build Android Geode mod → Run workflow** to start an Android64 build. A successful run uploads the .geode package as the Versus-Mode-Android64 artifact.
+This release pins the required Globed dependency and public headers to stable **2.2.2**.
 
-For a local build, install the Android NDK and Geode CLI/SDK 5.8.2, then run:
-```sh
-geode sdk install-binaries -p android64
-geode build -p android64
-```
+- Globed is a required dependency.
+- CMake and Geode metadata both require Globed 2.2.2.
+- The current build pipeline targets Android64.
 
-A compiled .geode file is not included until a build succeeds.
+**Important:** A successful CI build confirms compilation and packaging, not successful Soft Link API communication on a device. The previous device log reported that Globed 2.2.2 loaded and connected but did not return the exported Soft Link API table. That runtime compatibility issue still needs device verification.
 
+## Honest feature status
 
-Build pipeline notes: Android builds use the latest stable Geode SDK to avoid pinning a broken release metadata lookup. iOS builds run on macOS using the official Geode build action, not a nonexistent Docker image.
+- **Plaza / navigation / rank ladder / profile UI:** implemented in this branch.
+- **Globed connection and room status:** integration is under compatibility testing against 2.2.2.
+- **Ranked matchmaking, public/group room directories, LIVE match feed, synchronized Versus gameplay, local split controls, and server-backed profiles:** not implemented yet.
+- **Voice:** Globed handles voice inside shared levels. Versus does not directly activate the microphone or manage voice sessions.
+
+A successful CI build is not the same as on-device testing. Verify Globed status on the target phone before merging.
