@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.5 — Build and release correction
+- Bumped the Geode mod and project version to v0.6.5.
+- Corrected the Android64 build diagnostic that prevented compilation.
+- Publishes the v0.6.5 release with the Android64 .geode package.
+
+
 ## v0.6.4 — Stable Globed 2.2.2 requirement
 - Bumped the project and mod version to v0.6.4.
 - Requires stable Globed 2.2.2.
