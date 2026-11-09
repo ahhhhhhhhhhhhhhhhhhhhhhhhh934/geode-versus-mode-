@@ -60,7 +60,7 @@ namespace VersusLobby {
             s_listener = globed::MessageEvent<globed::msg::EventsMessage>{false}.listen(
                 [](const globed::msg::EventsMessage& message) {
                     for (auto const& event : message.events) {
-                        if (event.name != kEventId || event.data.size() != 7) continue;
+                        if (event.name != "versus.mode/lobby-v1"_spr || event.data.size() != 7) continue;
                         auto const& d = event.data;
                         uint32_t roomId = static_cast<uint32_t>(d[0]) |
                             (static_cast<uint32_t>(d[1]) << 8) |
