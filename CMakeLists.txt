@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VersusMode VERSION 0.5.0)
+project(VersusMode VERSION 0.6.0)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
@@ -16,8 +16,8 @@ setup_geode_mod(${PROJECT_NAME})
 include(FetchContent)
 FetchContent_Declare(globed2_headers
     GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
-    GIT_TAG v2.2.2
-    GIT_SHALLOW TRUE
+    GIT_TAG 737d2211b6ce00119f752dc07d0d76d2700b6d08
+    GIT_SHALLOW FALSE
 )
 FetchContent_GetProperties(globed2_headers)
 if (NOT globed2_headers_POPULATED)
