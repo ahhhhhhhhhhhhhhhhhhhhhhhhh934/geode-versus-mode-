@@ -1,11 +1,10 @@
 # Changelog
 
-## v0.6.1 — Globed 2.2.2 integration repair
-- Replaced the failing Soft Link API table lookup with Globed's direct Link API, version-matched to 2.2.2.
-- Made Globed 2.2.2 a required dependency and used Geode's generated dependency headers.
-- Read connection state and room ID through NetworkManager and RoomManager.
-- Removed Soft Link API export checks and unsupported player-count calls.
-
+## v0.6.2 — Globed 2.3.0 Soft Link API repair
+- Replaced the direct Link API singleton calls that failed at link time with Globed's documented Soft Link API wrappers.
+- Requires Globed 2.3.0, which fixes the missing exported API table reported by the user's 2.2.2 log.
+- Reads connection state and room ID through the Soft Link API.
+- Removed the unnecessary direct Link API dependency include path.
 
 ## v0.6.0 — Plaza, ranks and integration overhaul
 - Rebuilt dashboard and Plaza navigation as separate screens with clear navigation state.
