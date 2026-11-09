@@ -5,6 +5,7 @@ on:
     branches:
       - "overhaul/**"
       - "feature/global-matchmaking-backend"
+      - "feature/globed-room-lobby"
   pull_request:
     branches:
       - "main"
