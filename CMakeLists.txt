@@ -27,5 +27,5 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${globed_headers_SOURCE_DIR}/include)
 
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:>=2.3.0)
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0)
 
