@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VersusMode VERSION 0.6.3)
+project(VersusMode VERSION 0.6.4)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
@@ -12,7 +12,7 @@ endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 # Globed is distributed as a mod, not a Geode SDK-index package.
-# Fetch its public headers at a pinned upstream commit for the Soft Link API.
+# Fetch its public headers at the pinned stable v2.2.2 tag.
 include(FetchContent)
 FetchContent_Declare(
     globed_headers
@@ -28,4 +28,3 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${globed_headers_SOURCE_DIR}/include)
 
 setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.2.2)
-
