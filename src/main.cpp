@@ -1,30 +1,28 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
-#include <globed/soft-link/API.hpp>
+#include <globed/core/net/NetworkManager.hpp>
+#include <globed/core/RoomManager.hpp>
 
 using namespace geode::prelude;
 
 namespace Versus {
-    // Use Globed's supported Soft Link API. Its table lookup retries while
-    // Globed is installed/enabled, and its event export handles ABI-safe lookup.
+    // Globed 2.2.2's Soft Link API export is broken on the user's build.
+    // Use the version-matched Link API instead; this is a required dependency.
     static bool globedApiAvailable() {
-        return globed::api::available();
+        return globedLoaded();
     }
 
     static bool globedConnected() {
-        return globed::api::net::isConnected();
+        return globedLoaded() && globed::NetworkManager::get().isConnected();
     }
 
     static bool globedInRoom() {
-        return globed::api::room::isInRoom();
+        return globedLoaded() && globed::RoomManager::get().isInRoom();
     }
 
     static uint32_t globedRoomId() {
-        return globed::api::room::getId();
-    }
-
-    static size_t globedPlayerCount() {
-        return globed::api::game::getPlayerCount();
+        return globedLoaded() && globedInRoom()
+            ? globed::RoomManager::get().getRoomId() : 0;
     }
 
     enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
@@ -54,13 +52,9 @@ namespace Versus {
             globedConnected();
     }
 
-    static bool globedHasApiExportFix() {
-        return globedInstalled() && globed::api::isAtLeast("v2.3.0");
-    }
-
     static char const* globedConnectionStateName() {
-        if (!globedApiAvailable()) return "API UNAVAILABLE";
-        switch (globed::api::net::getConnectionState()) {
+        if (!globedLoaded()) return "GLOBED NOT LOADED";
+        switch (globed::NetworkManager::get().getConnectionState()) {
             case globed::ConnectionState::Disconnected: return "DISCONNECTED";
             case globed::ConnectionState::DnsResolving: return "DNS RESOLVING";
             case globed::ConnectionState::Pinging: return "PINGING";
@@ -71,10 +65,6 @@ namespace Versus {
             case globed::ConnectionState::Reconnecting: return "RECONNECTING";
             default: return "UNKNOWN";
         }
-    }
-
-    static uint32_t globedCentralPing() {
-        return globedApiAvailable() ? globed::api::net::getCentralPingMs() : 0;
     }
 
     struct RankTier {
@@ -173,11 +163,10 @@ namespace Versus {
                 m_waitingForGlobed = false;
                 if (globedConnected()) {
                     if (globedInRoom()) {
-                        auto players = globedPlayerCount();
                         auto roomId = globedRoomId();
-                        auto status = fmt::format("ROOM {}  •  {} PLAYERS", roomId, players);
+                        auto status = fmt::format("ROOM {}", roomId);
                         showInfo("ONLINE VERSUS", "GLOBED ROOM READY", status.c_str(),
-                            "Globed API is responding and your room is detected.",
+                            "Globed's Link API is responding and your room is detected.",
                             "Matchmaking and Versus gameplay sync still need their own protocol.");
                     } else {
                         showInfo("ONLINE VERSUS", "GLOBED CONNECTION READY", "API CONNECTED",
@@ -198,13 +187,10 @@ namespace Versus {
                         "Geode has not finished loading the Globed mod.",
                         "Enable Globed in Geode, then restart Geometry Dash.");
                 } else {
-                    log::warn("Versus: Globed loaded, but its exported Soft Link API table was not returned.");
-                    auto extra = globedHasApiExportFix()
-                        ? "This Globed version should include the v2.3.0 export fix; check that the installed mod is the expected build."
-                        : "Your log shows Globed 2.2.2. The API-export fix is listed in the upstream v2.3.0 changes; update Globed to a build containing it.";
-                    showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "SOFT LINK TABLE MISSING",
-                        "Globed loaded, but Versus cannot access its exported API table.",
-                        extra);
+                    log::warn("Versus: Globed loaded but direct Link API dependency could not be queried.");
+                    showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED API UNAVAILABLE",
+                        "Globed is loaded, but its linked API could not be called.",
+                        "Check that Globed v2.2.2 is installed and enabled, then send the new log if this persists.");
                 }
             }
         }
@@ -271,7 +257,6 @@ namespace Versus {
             char const* network = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globedApiAvailable() ? (globedHasApiExportFix() ? "API EXPORT MISSING" : "UPDATE GLOBED 2.3.0+") :
                 globedConnectionStateName())));
             label(network, 0.27f, {w * 0.63f, h - 91.f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
@@ -319,9 +304,7 @@ namespace Versus {
             std::string state = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED STARTING" :
-                (!globedApiAvailable()
-                    ? (globedHasApiExportFix() ? "SOFT LINK EXPORT MISSING" : "UPDATE GLOBED: v2.3.0 API FIX")
-                    : fmt::format("GLOBED {}  •  {} MS", globedConnectionStateName(), globedCentralPing()))));
+                fmt::format("GLOBED {}", globedConnectionStateName())));
             label(state.c_str(), 0.23f, {w * 0.50f, h * 0.65f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
 
@@ -450,7 +433,6 @@ namespace Versus {
             char const* state = !globedInstalled() ? "GLOBED NOT INSTALLED" :
                 (!globedEnabled() ? "GLOBED DISABLED" :
                 (!globedLoaded() ? "GLOBED NOT LOADED" :
-                (!globedApiAvailable() ? "SOFT LINK API UNAVAILABLE" :
                 (!globedConnected() ? "NOT CONNECTED" :
                 (globedInRoom() ? "INSIDE A ROOM" : "CONNECTED  •  NO ROOM")))));
             label(state, 0.37f, {w * 0.50f, mid + h * 0.075f},
@@ -458,9 +440,9 @@ namespace Versus {
 
             if (globedLoaded() && globedApiAvailable() && globedConnected() && globedInRoom()) {
                 auto roomText = fmt::format("ROOM ID  {}", globedRoomId());
-                auto playerText = fmt::format("{} PLAYERS IN YOUR LEVEL", globedPlayerCount());
                 label(roomText.c_str(), 0.30f, {w * 0.50f, mid + h * 0.005f}, {225,235,250});
-                label(playerText.c_str(), 0.27f, {w * 0.50f, mid - h * 0.055f}, {170,210,250});
+                label("ROOM DETECTED THROUGH GLOBED", 0.24f,
+                    {w * 0.50f, mid - h * 0.055f}, {170,210,250});
             } else {
                 label("Join or create a room using Globed's own room menu.", 0.27f,
                     {w * 0.50f, mid}, {220,230,245});
@@ -506,10 +488,8 @@ namespace Versus {
             char const* state = !globedInstalled() ? "GLOBED IS REQUIRED FOR VOICE" :
                 (!globedEnabled() ? "ENABLE GLOBED FIRST" :
                 (!globedLoaded() ? "WAITING FOR GLOBED" :
-                (!globedApiAvailable() ? "GLOBED API UNAVAILABLE" :
                 (!globedConnected() ? "CONNECT TO GLOBED" :
-                (globed::api::game::isActive() ? "VOICE CAN BE USED IN THIS LEVEL" :
-                    "JOIN A SHARED LEVEL FIRST")))));
+                    "VOICE IS PROVIDED BY GLOBED IN SHARED LEVELS")));
             label(state, 0.32f, {w * 0.50f, mid + h * 0.09f},
                 globedReady() ? ccColor3B{115,255,170} : ccColor3B{255,195,115});
             label("Globed handles voice chat inside shared levels.", 0.27f,
@@ -593,15 +573,6 @@ namespace Versus {
                 showGlobedLoading();
                 return;
             }
-            if (!globedApiAvailable()) {
-                auto detail = globedHasApiExportFix()
-                    ? "This Globed build should contain the API-export fix, but the table is still unavailable."
-                    : "Your uploaded log shows Globed 2.2.2. The upstream v2.3.0 changes include the missing API-export fix.";
-                showInfo("ONLINE VERSUS","GLOBED INTEGRATION","SOFT LINK TABLE MISSING",
-                    "Globed loaded, but Versus cannot access its exported API table.",
-                    detail);
-                return;
-            }
             if (!globedConnected()) {
                 auto connection = globedConnectionStateName();
                 auto status = std::string(connection) == "RECONNECTING" ? "GLOBED RECONNECTING" : "NOT CONNECTED";
@@ -619,10 +590,9 @@ namespace Versus {
                     "Join or create a Globed room, then return here.");
                 return;
             }
-            auto players = globedPlayerCount();
             auto roomId = globedRoomId();
-            auto status = fmt::format("ROOM {}  •  {} PLAYERS", roomId, players);
-            auto detail = std::string("Globed room detected. Player sync can use its event API.");
+            auto status = fmt::format("ROOM {}", roomId);
+            auto detail = std::string("Globed room detected through its linked API.");
             showInfo("ONLINE VERSUS","GLOBED ROOM DETECTED",status.c_str(),
                 detail.c_str(),"Room creation and matchmaking are not exposed by Soft Link.");
         }
