@@ -7,9 +7,9 @@
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v0.6.1",
+  "version": "v0.6.2",
   "developer": "Versus Mode Team",
-  "description": "Globed 2.2.2 Link API integration repair and Versus competition hub.",
+  "description": "Globed 2.3.0 Soft Link API repair and Versus competition hub.",
   "tags": [
     "gameplay",
     "online",
@@ -17,7 +17,7 @@
   ],
   "dependencies": {
     "dankmeme.globed2": {
-      "version": "2.2.2",
+      "version": "2.3.0",
       "required": true
     }
   }
