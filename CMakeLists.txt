@@ -13,17 +13,8 @@ endif()
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 setup_geode_mod(${PROJECT_NAME})
 
-include(FetchContent)
-FetchContent_Declare(globed2_headers
-    GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
-    GIT_TAG 737d2211b6ce00119f752dc07d0d76d2700b6d08
-    GIT_SHALLOW FALSE
-)
-FetchContent_GetProperties(globed2_headers)
-if (NOT globed2_headers_POPULATED)
-    FetchContent_Populate(globed2_headers)
-endif()
+# Globed Link API. Keep this dependency version aligned with mod.json:
+# the Link API is ABI-sensitive, unlike Globed's Soft Link API.
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${globed2_headers_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/geode-deps/dankmeme.globed2/include
 )
-
