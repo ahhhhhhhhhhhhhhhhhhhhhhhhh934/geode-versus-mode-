@@ -209,7 +209,7 @@ namespace Versus {
                     log::warn("Versus: Globed loaded but its Soft Link API table could not be queried.");
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED API UNAVAILABLE",
                         "Globed is loaded, but its Soft Link API could not be called.",
-                        "Check that Globed v2.2.2 is installed and enabled, then send the new log if this persists.");
+                        "Check that Globed v2.3.0 or newer is installed and enabled, then send the new log if this persists.");
                 }
             }
         }
@@ -650,6 +650,26 @@ namespace Versus {
 
         void onToggleReady(CCObject*) {
             VersusLobby::setReady(!VersusLobby::ready());
+            showRoomLobby();
+        }
+
+        void queueForMode(char const* mode) {
+            if (!globedConnected() || !globedInRoom()) {
+                showInfo("VERSUS MATCHMAKING", "GLOBED ROOM REQUIRED", "ROOM NOT AVAILABLE",
+                    "Connect to Globed and join a room before entering a Versus lobby.",
+                    "Your selected mode was not queued.");
+                return;
+            }
+
+            uint8_t modeId = 0;
+            if (std::strcmp(mode, "race") == 0) modeId = 1;
+            else if (std::strcmp(mode, "survival") == 0) modeId = 2;
+            else if (std::strcmp(mode, "dual") == 0) modeId = 3;
+            else if (std::strcmp(mode, "platformer") == 0) modeId = 4;
+
+            if (!modeId) return;
+            VersusLobby::join(globedRoomId(), modeId);
+            m_lobbyRefresh = 0.f;
             showRoomLobby();
         }
 
