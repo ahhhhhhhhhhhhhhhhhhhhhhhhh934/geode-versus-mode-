@@ -6,6 +6,7 @@
 using namespace geode::prelude;
 
 namespace Versus {
+    static bool globedLoaded();
     // Globed 2.2.2's Soft Link API export is broken on the user's build.
     // Use the version-matched Link API instead; this is a required dependency.
     static bool globedApiAvailable() {
