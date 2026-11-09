@@ -7,9 +7,9 @@
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v0.6.0",
+  "version": "v0.6.1",
   "developer": "Versus Mode Team",
-  "description": "A redesigned Geometry Dash competition hub with Plaza navigation, a difficulty-based rank ladder, player profile screens, and Globed diagnostics.",
+  "description": "Globed 2.2.2 Link API integration repair and Versus competition hub.",
   "tags": [
     "gameplay",
     "online",
