@@ -51,6 +51,12 @@ export class GlobalQueue {
   constructor(state: DurableObjectState) { this.state = state; }
 
   async fetch(request: Request): Promise<Response> {
+    // Keep read/modify/write queue operations serialized across concurrent requests.
+    // Without this gate, two simultaneous joins could both observe an empty queue.
+    return this.state.blockConcurrencyWhile(async () => this.handle(request));
+  }
+
+  private async handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/queue/join") return this.join(request);
     if (request.method === "POST" && url.pathname === "/queue/leave") return this.leave(request);
