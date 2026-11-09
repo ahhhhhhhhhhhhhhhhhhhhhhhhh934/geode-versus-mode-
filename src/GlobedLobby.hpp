@@ -89,6 +89,8 @@ namespace VersusLobby {
         });
     }
 
+    inline void leave();
+
     inline void join(uint32_t roomId, uint8_t mode) {
         if (s_joined && s_roomId != roomId) leave();
         if (!roomId) return;
