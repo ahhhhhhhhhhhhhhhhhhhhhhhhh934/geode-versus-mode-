@@ -1,6 +1,14 @@
 name: Publish Versus Mode v0.5.0
 
 on:
+  push:
+    branches:
+      - "overhaul/plaza-navigation-voice-status"
+    paths:
+      - ".github/workflows/publish-release.yml"
+      - "src/**"
+      - "mod.json"
+      - "CMakeLists.txt"
   workflow_dispatch:
 
 permissions:
