@@ -16,7 +16,7 @@ namespace Versus {
         if (!available && !loggedUnavailable) {
             loggedUnavailable = true;
             auto* mod = geode::Loader::get()->getInstalledMod("dankmeme.globed2");
-            auto version = mod ? mod->getVersion().toString() : std::string("not installed");
+            auto version = mod ? mod->getVersion().toVString() : std::string("not installed");
             log::warn("Versus: Globed {} is loaded, but getRootTable() did not return an API table. This is an API-export/loader issue, not a server connection state.", version);
         }
         if (available) loggedUnavailable = false;
