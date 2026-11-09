@@ -1,0 +1,30 @@
+name: Matchmaking Worker Validation
+
+on:
+  push:
+    branches:
+      - feature/global-matchmaking-backend
+    paths:
+      - "matchmaking/**"
+      - ".github/workflows/matchmaking-worker.yml"
+  pull_request:
+    paths:
+      - "matchmaking/**"
+      - ".github/workflows/matchmaking-worker.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: matchmaking
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: matchmaking/package-lock.json
+      - run: npm install
+      - run: npx tsc --noEmit
+      - run: npm run check
