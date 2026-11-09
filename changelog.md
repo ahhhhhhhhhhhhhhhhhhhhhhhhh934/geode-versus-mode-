@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.3 — Globed dependency resolution
+- Declared Globed as an external Geode mod dependency so the SDK does not try to download it from the Geode mod index.
+- Fetches pinned public Globed headers for the Soft Link API at configure time.
+- Requires Globed 2.3.0 or newer at runtime.
+
+
 ## v0.6.2 — Globed 2.3.0 Soft Link API repair
 - Replaced the direct Link API singleton calls that failed at link time with Globed's documented Soft Link API wrappers.
 - Requires Globed 2.3.0, which fixes the missing exported API table reported by the user's 2.2.2 log.
