@@ -17,7 +17,7 @@ include(FetchContent)
 FetchContent_Declare(
     globed_headers
     GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
-    GIT_TAG 737d2211b6ce00119f752dc07d0d76d2700b6d08
+    GIT_TAG v2.2.2
     GIT_SHALLOW FALSE
 )
 FetchContent_GetProperties(globed_headers)
@@ -27,5 +27,5 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${globed_headers_SOURCE_DIR}/include)
 
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0)
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.2.2)
 
