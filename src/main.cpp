@@ -168,7 +168,7 @@ namespace Versus {
                 }
                 return;
             }
-            if (m_globedWait >= 12.f) {
+            if (m_globedWait >= (globedLoaded() ? 3.f : 12.f)) {
                 m_waitingForGlobed = false;
                 if (!globedLoaded()) {
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED DID NOT LOAD",
@@ -235,6 +235,7 @@ namespace Versus {
 
         void showHome() {
             s_screen = Screen::Home;
+            m_waitingForGlobed = false;
             basePage("VERSUS MODE", "COMPETE  •  CONNECT  •  CLIMB");
             auto w = m_size.width;
             auto h = m_size.height;
@@ -324,7 +325,6 @@ namespace Versus {
             auto w = m_size.width;
             auto h = m_size.height;
             int points = rankPoints();
-            size_t current = rankTierIndex(points);
             addCard({w * 0.50f, h * 0.83f}, {w * 0.88f, h * 0.16f}, {16, 39, 75, 250});
             label(fmt::format("{}  •  {} RP", rankName(points), points).c_str(),
                 0.34f, {w * 0.50f, h * 0.85f}, {255,224,110});
@@ -523,6 +523,7 @@ namespace Versus {
         }
 
         void showInfo(char const* title, char const* subtitle, char const* status, char const* detail, char const* extra) {
+            m_waitingForGlobed = false;
             s_screen = Screen::Info;
             basePage(title,subtitle);
             auto mid=m_size.height/2;
