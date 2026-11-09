@@ -9,7 +9,7 @@
   "name": "Versus Mode",
   "version": "v0.6.5",
   "developer": "Versus Mode Team",
-  "description": "Globed 2.2.2 dependency and Versus competition hub.",
+  "description": "Versus competition hub with Globed room-based lobbies.",
   "tags": [
     "gameplay",
     "online",
@@ -21,12 +21,4 @@
       "required": true
     }
   },
-  "settings": {
-    "matchmaking-url": {
-      "type": "string",
-      "name": "Global Matchmaking Server URL",
-      "description": "HTTPS URL of the deployed Versus matchmaking Worker. Leave blank until the service has been deployed.",
-      "default": ""
-    }
-  }
 }
