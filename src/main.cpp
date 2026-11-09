@@ -523,7 +523,7 @@ namespace Versus {
             menu->setPosition({0,0});
             menu->addChild(button("ROOM STATUS", menu_selector(LobbyLayer::onRooms),
                 {w * 0.30f, 48.f}, "GJ_button_02.png", 0.43f));
-            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onHome),
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
                 {w * 0.70f, 48.f}, "GJ_button_01.png", 0.43f));
             m_page->addChild(menu, 5);
         }
