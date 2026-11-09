@@ -347,10 +347,18 @@ namespace Versus {
                 );
                 tile->setPosition({x - w * 0.215f, y - h * 0.0325f});
                 m_page->addChild(tile, 1);
-                label(tier.name, 0.23f, {x, y + 2.f},
+                // Use Geometry Dash's own difficulty-face sprite, not a custom imitation.
+                int gdDifficulty = i == 0 ? -1 : static_cast<int>(i);
+                auto* face = GJDifficultySprite::create(gdDifficulty, GJDifficultyName::Short);
+                if (face) {
+                    face->setScale(0.48f);
+                    face->setPosition({x - w * 0.145f, y});
+                    m_page->addChild(face, 3);
+                }
+                label(tier.name, 0.22f, {x + w * 0.035f, y + 2.f},
                     active ? ccColor3B{255,255,255} : tier.color);
                 label(fmt::format("{} RP", tier.minimumPoints).c_str(),
-                    0.16f, {x, y - h * 0.022f}, {185,205,230});
+                    0.16f, {x + w * 0.035f, y - h * 0.022f}, {185,205,230});
             }
 
             auto* menu = CCMenu::create();
