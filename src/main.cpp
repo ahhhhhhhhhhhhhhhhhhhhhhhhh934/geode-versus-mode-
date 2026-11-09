@@ -621,7 +621,7 @@ namespace Versus {
         }
 
         std::string matchmakingEndpoint() {
-            auto endpoint = Mod::get()->getSavedValue<std::string>("matchmaking-url", "");
+            auto endpoint = Mod::get()->getSettingValue<std::string>("matchmaking-url");
             while (!endpoint.empty() && endpoint.back() == '/') endpoint.pop_back();
             return endpoint;
         }
