@@ -609,7 +609,7 @@ namespace Versus {
                     ? "Globed reports that its server connection is being restored after a timeout."
                     : "Globed currently reports no central server connection.";
                 showInfo("ONLINE VERSUS","GLOBED NETWORK",status,
-                    detail.c_str(),
+                    detail,
                     "Versus can display Globed's state, but cannot repair a timeout inside Globed or its server.");
                 return;
             }
