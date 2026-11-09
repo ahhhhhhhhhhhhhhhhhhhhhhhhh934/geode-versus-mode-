@@ -1,6 +1,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <globed/soft-link/API.hpp>
+#include "GlobedLobby.hpp"
 #include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
@@ -158,6 +159,7 @@ namespace Versus {
         std::string m_queueState;
         float m_queuePollTimer = 0.f;
         bool m_queueRequestPending = false;
+        float m_lobbyRefresh = 0.f;
 
         float m_globedWait = 0.f;
         float m_loadingPulse = 0.f;
@@ -166,6 +168,11 @@ namespace Versus {
 
         void update(float dt) override {
             CCLayer::update(dt);
+            VersusLobby::update(dt, globedInRoom() ? globedRoomId() : 0);
+            if (s_screen == Screen::Online && VersusLobby::joined()) {
+                m_lobbyRefresh += dt;
+                if (m_lobbyRefresh >= 2.f) { m_lobbyRefresh = 0.f; showRoomLobby(); }
+            }
             if (!m_queueTicket.empty() && !m_queueRequestPending) {
                 m_queuePollTimer += dt;
                 if (m_queuePollTimer >= 2.f) {
@@ -583,12 +590,18 @@ namespace Versus {
         }
         void showQueueModes() {
             s_screen = Screen::Online;
-            basePage("GLOBAL MATCHMAKING", "FIND A PLAYER FROM ANY GLOBED ROOM");
+            if (!globedInRoom()) {
+                showInfo("VERSUS LOBBY", "JOIN A GLOBED ROOM FIRST", "NO ROOM DETECTED",
+                    "Versus Lobby uses Globed rooms instead of a separate matchmaking server.",
+                    "Open Globed, join or create a room, then return here.");
+                return;
+            }
+            basePage("VERSUS LOBBY", "MATCH WITH PLAYERS IN YOUR GLOBED ROOM");
             auto w = m_size.width;
             auto h = m_size.height;
             addCard({w * 0.50f, h * 0.62f}, {w * 0.88f, h * 0.30f}, {16, 39, 75, 250});
             label("SELECT YOUR GAME MODE", 0.36f, {w * 0.50f, h * 0.72f}, {255,224,110});
-            label("Casual queue  •  global pairing  •  ready check", 0.24f,
+            label(fmt::format("GLOBED ROOM  {}", globedRoomId()).c_str(), 0.24f,
                 {w * 0.50f, h * 0.64f}, {190,215,245});
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
@@ -603,6 +616,55 @@ namespace Versus {
             menu->addChild(button("BACK", menu_selector(LobbyLayer::onBack),
                 {w * 0.50f, 42.f}, "GJ_button_01.png", 0.48f));
             m_page->addChild(menu, 5);
+        }
+
+        void showRoomLobby() {
+            if (!VersusLobby::joined()) { showQueueModes(); return; }
+            s_screen = Screen::Online;
+            basePage("VERSUS ROOM LOBBY", "GLOBED CENTRAL SERVER EVENTS");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto mode = VersusLobby::mode();
+            char const* modeName = mode == 1 ? "RACE" : mode == 2 ? "SURVIVAL" :
+                mode == 3 ? "DUAL" : "PLATFORMER";
+            auto players = VersusLobby::players(mode);
+            size_t readyCount = VersusLobby::ready() ? 1 : 0;
+            for (auto const& player : players) if (player.ready) ++readyCount;
+            addCard({w * 0.50f, h * 0.62f}, {w * 0.88f, h * 0.36f}, {16, 39, 75, 250});
+            label(modeName, 0.43f, {w * 0.50f, h * 0.76f}, {255,224,110});
+            label(fmt::format("ROOM {}  •  {} PLAYER(S)", VersusLobby::roomId(), players.size() + 1).c_str(),
+                0.25f, {w * 0.50f, h * 0.67f}, {190,215,245});
+            label(fmt::format("{} READY", readyCount).c_str(),
+                0.30f, {w * 0.50f, h * 0.57f}, {145,220,255});
+            label(players.empty() ? "Waiting for another player in this room..." :
+                "Players in this Versus mode are listed by their Globed account IDs.",
+                0.20f, {w * 0.50f, h * 0.48f}, {190,215,245});
+            float listY = h * 0.41f;
+            for (auto const& player : players) {
+                label(fmt::format("PLAYER {}  •  {}", player.accountId,
+                    player.ready ? "READY" : "NOT READY").c_str(),
+                    0.19f, {w * 0.50f, listY}, player.ready ?
+                    ccColor3B{115,255,170} : ccColor3B{255,195,115});
+                listY -= 18.f;
+                if (listY < h * 0.19f) break;
+            }
+            if (players.size() + 1 >= 2 && readyCount == players.size() + 1) {
+                label("LOBBY READY — GAME SESSION INTEGRATION NEXT", 0.20f,
+                    {w * 0.50f, h * 0.16f}, {115,255,170});
+            }
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button(VersusLobby::ready() ? "UNREADY" : "READY",
+                menu_selector(LobbyLayer::onToggleReady),
+                {w * 0.28f, 48.f}, "GJ_button_05.png", 0.50f));
+            menu->addChild(button("LEAVE", menu_selector(LobbyLayer::onCancelQueue),
+                {w * 0.72f, 48.f}, "GJ_button_01.png", 0.50f));
+            m_page->addChild(menu, 5);
+        }
+
+        void onToggleReady(CCObject*) {
+            VersusLobby::setReady(!VersusLobby::ready());
+            showRoomLobby();
         }
 
         void showQueueStatus(char const* title, char const* detail, char const* extra) {
@@ -626,65 +688,24 @@ namespace Versus {
             return endpoint;
         }
 
-        void queueForMode(char const* mode) {
+        void queueForMode(char const* modeName) {
             if (!globedLoaded() || !globedApiAvailable() || !globedConnected()) {
-                showInfo("GLOBAL MATCHMAKING", "GLOBED REQUIRED", "NOT CONNECTED",
-                    "Connect to Globed before entering the global queue.",
-                    "Your current private room does not limit who can be matched.");
+                showInfo("VERSUS LOBBY", "GLOBED REQUIRED", "NOT CONNECTED",
+                    "Connect to Globed before joining a Versus room lobby.",
+                    "The lobby uses Globed's own central server events.");
                 return;
             }
-            auto endpoint = matchmakingEndpoint();
-            if (endpoint.empty()) {
-                showInfo("GLOBAL MATCHMAKING", "SERVER NOT CONFIGURED", "BACKEND URL MISSING",
-                    "The queue client is ready, but the public service URL is not configured.",
-                    "The backend must be deployed before this can connect.");
+            if (!globedInRoom()) {
+                showInfo("VERSUS LOBBY", "JOIN A GLOBED ROOM FIRST", "NO ROOM DETECTED",
+                    "Create or join a Globed room before opening a Versus lobby.",
+                    "Then return here and select your game mode.");
                 return;
             }
-            m_queueMode = mode;
-            m_queueTicket.clear();
-            m_queueState = "joining";
-            m_queueRequestPending = true;
-            showQueueStatus("JOINING GLOBAL QUEUE", "Contacting matchmaking service...", mode);
-            auto req = web::WebRequest();
-            req.header("Content-Type", "application/json");
-            req.timeout(std::chrono::seconds(12));
-            req.bodyString(fmt::format(R"({{"mode":"{}","region":"global","ranked":false}})", mode));
-            m_queueTask.spawn(req.post(endpoint + "/queue/join"),
-                [this](web::WebResponse res) {
-                    m_queueRequestPending = false;
-                    if (!res.ok()) {
-                        auto message = res.string().unwrapOr("No response body");
-                        showInfo("GLOBAL MATCHMAKING", "QUEUE REQUEST FAILED",
-                            fmt::format("HTTP {}", res.code()).c_str(), message.c_str(),
-                            "Check the backend deployment and try again.");
-                        return;
-                    }
-                    auto parsed = res.json();
-                    if (!parsed) {
-                        showInfo("GLOBAL MATCHMAKING", "INVALID SERVER RESPONSE", "BAD JSON",
-                            "The matchmaking server returned unreadable data.",
-                            "The queue was not started.");
-                        return;
-                    }
-                    auto data = parsed.unwrap();
-                    m_queueTicket = data["ticket"].asString().unwrapOr("");
-                    auto state = data["state"].asString().unwrapOr("unknown");
-                    if (m_queueTicket.empty()) {
-                        showInfo("GLOBAL MATCHMAKING", "QUEUE ERROR", "NO TICKET",
-                            "The service did not return a queue ticket.",
-                            "Try again after checking the backend logs.");
-                        return;
-                    }
-                    m_queueState = state;
-                    m_queuePollTimer = 2.f;
-                    if (state == "matched") {
-                        confirmGlobalMatch();
-                    } else {
-                        showQueueStatus("SEARCHING FOR PLAYER",
-                            "You're in the shared global queue.", m_queueMode.c_str());
-                    }
-                }
-            );
+            uint8_t mode = std::string(modeName) == "race" ? 1 :
+                std::string(modeName) == "survival" ? 2 :
+                std::string(modeName) == "dual" ? 3 : 4;
+            VersusLobby::join(globedRoomId(), mode);
+            showRoomLobby();
         }
 
         void pollGlobalQueue() {
@@ -782,7 +803,7 @@ namespace Versus {
         void onQueueSurvival(CCObject*) { queueForMode("survival"); }
         void onQueueDual(CCObject*) { queueForMode("dual"); }
         void onQueuePlatformer(CCObject*) { queueForMode("platformer"); }
-        void onCancelQueue(CCObject*) { leaveGlobalQueue(); }
+        void onCancelQueue(CCObject*) { VersusLobby::leave(); showQueueModes(); }
 
         void onOnline(CCObject*) {
             if (!globedInstalled() || !globedEnabled() || !globedLoaded()) {
@@ -855,3 +876,7 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
         }
     }
 };
+
+$execute {
+    VersusLobby::initialize();
+}
