@@ -1,5 +1,3 @@
-# Versus Mode
+A redesigned Geometry Dash competition hub for Geode, with a dedicated Plaza, player profile, Geometry Dash difficulty-based rank ladder, and clearer Globed diagnostics.
 
-A Geometry Dash competition hub prototype for Geode, with a Plaza, room status, voice setup guidance, and Globed integration diagnostics.
-
-Online matchmaking, synchronized Versus gameplay, local split controls, and a hosted Workshop are still under development.
+This is an interface and integration overhaul. Ranked matchmaking, Versus gameplay synchronization, public/group room services, LIVE spectating, and server-backed profiles are still under development.
