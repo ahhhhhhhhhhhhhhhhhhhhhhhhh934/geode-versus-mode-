@@ -1,38 +1,30 @@
 # Geode Versus Mode
 
-A Geometry Dash competition hub prototype for Geode. This overhaul focuses on reliable navigation, clearer Globed diagnostics, and an honest feature-status UI.
+A Geometry Dash competition hub for Geode, targeting Geometry Dash **2.2081**, Geode **5.11.2**, Android64.
 
-## What this version actually does
+## v0.6.0 interface overhaul
 
-- Adds the Versus entry to the Geometry Dash Creator screen.
-- Provides a dashboard and a separate **Plaza** page. The Plaza button now opens its own page instead of simply redrawing the dashboard.
-- Adds dedicated room-status and voice-setup pages with refresh and navigation actions.
-- Detects whether Globed is installed, enabled, loaded, connected, and whether the player is in a room / active shared level.
-- Reports a missing Globed Soft Link API table immediately once Globed is loaded, rather than making the player wait through a fake connection timeout.
-- Keeps the lobby accessible without Globed; online and voice information explains what dependency is missing.
-
-## Important limitations (not represented as working features)
-
-- **Online 1v1:** this build detects Globed connection and room state. It does not yet implement matchmaking, a Versus match protocol, or synchronized race results.
-- **Voice:** voice is provided by Globed inside shared levels. The Versus voice page is a setup/status guide; it cannot directly activate the microphone because the Globed Soft Link API does not expose a voice-session control.
-- **Local 1v1:** two independent player-control systems are not implemented.
-- **Workshop:** no catalog, upload service, or moderation backend is connected yet.
+- Reworked the dashboard and Plaza navigation with separate screens.
+- Added Ranked, Profile, Public Rooms, Group Rooms, and LIVE destinations.
+- Added a rank ladder using Geometry Dash's classic difficulty names: Auto, Easy, Normal, Hard, Harder, Insane, Easy Demon, Medium Demon, Hard Demon, Insane Demon, and Extreme Demon.
+- Added a local rank-points display. These points are a local UI/profile placeholder; they are not a verified online rating and are not awarded for online wins yet.
+- Added distinct Globed states for installed, enabled, loaded, Soft Link API available, and connected.
+- Added a safe fallback for the Creator screen entry if a texture-pack sprite is missing.
+- Updated the Globed headers to the upstream commit containing the Soft Link API export fix.
 
 ## Globed compatibility
 
-The mod uses Globed's documented Soft Link API. The uploaded v0.4.13 log showed Globed 2.2.2 loading and connecting while its exported API table was unavailable. Globed's upstream 2.3.0 changelog lists a fix for API functions not being exported. This mod cannot repair a missing export inside Globed itself; it now displays that failure clearly. Keep Globed optional so the Plaza and local UI can still load.
+The uploaded device log shows Globed **2.2.2** loading and connecting while Versus **0.4.13** cannot obtain the Soft Link API table. Globed's upstream v2.3.0 changelog lists a fix for API functions not being exported. This project now builds against the upstream commit containing that fix and reports the missing API separately from network connection state.
+
+The later log also shows a separate server connection timeout after Globed had connected. Versus can report connected/offline status when the Soft Link API is available, but it cannot repair a timeout inside Globed or its server connection.
+
+## Honest implementation status
+
+- **Plaza / navigation / rank ladder / profile UI:** implemented in this branch.
+- **Globed status:** reads the documented Soft Link API when the installed Globed build exports it.
+- **Ranked matchmaking, public/group room directories, LIVE match feed, synchronized Versus gameplay, local split controls, and server-backed profiles:** not implemented yet. Those screens explain their status instead of showing fake rooms, players, or results.
+- **Voice:** Globed handles voice inside shared levels. Versus does not directly activate the microphone or manage voice sessions.
 
 ## Build
 
-The project targets Geometry Dash 2.2081 and Geode SDK 5.11.2. For Android64, use the repository's GitHub Actions workflow:
-
-1. Open **Actions**.
-2. Run **Android64 Overhaul Build** (or push to the overhaul branch).
-3. Download the `Versus-Mode-Android64-Overhaul` artifact after a successful run.
-
-No release is published by the overhaul build workflow. The package is not considered tested until it is installed and checked in Geometry Dash on-device.
-
-
-## Target compatibility
-
-This branch targets Geometry Dash 2.2081 and Geode v5.11.2. The Android64 build for this target has compiled successfully; the artifact still needs installation and in-game testing.
+The GitHub Actions Android64 workflow builds the .geode package for Geometry Dash 2.2081 / Geode 5.11.2. A successful CI build is not the same as on-device testing; the new package must still be installed and checked in Geometry Dash.
