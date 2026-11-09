@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "overhaul/**"
+      - "feature/global-matchmaking-backend"
   pull_request:
     branches:
       - "main"
