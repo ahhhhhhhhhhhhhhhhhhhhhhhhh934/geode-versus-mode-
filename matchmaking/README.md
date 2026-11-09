@@ -37,3 +37,14 @@ After deployment, verify `GET /health`. Do not configure the game client to use 
 - Integrate Globed room allocation and invite/join flow so both matched players enter the same match room.
 - Add server-authoritative match lifecycle/results before enabling ranked.
 - Add abuse reporting, blocking, and operational monitoring before public launch.
+
+## One-click GitHub deployment
+
+The repository includes a manual GitHub Actions deploy job. Before running it, add these repository Actions secrets:
+
+- `CLOUDFLARE_API_TOKEN` — a Cloudflare API token with permission to deploy Workers and manage Durable Objects for this account.
+- `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account ID.
+
+Then open **Actions → Matchmaking Worker Validation → Run workflow** on the `feature/global-matchmaking-backend` branch. The deploy job publishes the Worker. The public Worker URL is shown in the deploy logs. Add that HTTPS URL to the Geode mod's **Global Matchmaking Server URL** setting.
+
+Never commit the API token or paste it into source files. The deploy job is manual and does not run on ordinary pushes or pull requests.
