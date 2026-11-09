@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.6 — Release pipeline correction
+- Bumped the Geode mod, project, and in-game version to v0.6.6.
+- Fixed the release pipeline so the published tag points at the exact commit that was built, instead of a stale pre-existing tag.
+- The publish workflow now reads the version from mod.json, verifies the built .geode package (version and Globed 2.2.2 dependency) before publishing, and fails the run if the artifact is missing.
+- Publishes the v0.6.6 release with the Android64 .geode package.
+
 ## v0.6.5 — Build and release correction
 - Bumped the Geode mod and project version to v0.6.5.
 - Corrected the Android64 build diagnostic that prevented compilation.
