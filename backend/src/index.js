@@ -51,6 +51,7 @@ export class Matchmaker {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
+    this.queueLock = Promise.resolve();
   }
 
   async fetch(request) {
@@ -81,6 +82,11 @@ export class Matchmaker {
   }
 
   async join(request) {
+    const previous = this.queueLock;
+    let release;
+    this.queueLock = new Promise(resolve => { release = resolve; });
+    await previous;
+    try {
     const body = await request.json();
     const mode = body.mode;
     const now = Date.now();
@@ -120,6 +126,9 @@ export class Matchmaker {
 
     await this.ctx.storage.put("ticket:" + ticket, own);
     return json({ ticket, state: own.state, mode });
+    } finally {
+      release();
+    }
   }
 
   async ready(key, record) {
