@@ -49,6 +49,7 @@ end $$;
 create or replace function public.versus_queue_leave(p_ticket uuid) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare v_record public.versus_queue%rowtype;
 begin
+ perform pg_advisory_xact_lock(hashtext('versus-global-queue'));
  select * into v_record from public.versus_queue where ticket=p_ticket for update;
  if not found then return jsonb_build_object('state','not_found'); end if;
  if v_record.opponent is not null then update public.versus_queue set state='cancelled',opponent=null where ticket=v_record.opponent and state<>'ready'; end if;
