@@ -12,9 +12,10 @@ endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-# Pull the Globed beta dependency through Geode's dependency resolver so the
-# headers and runtime mod package always come from the same pinned release.
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0)
+# Let Geode resolve the dependency declared in mod.json and download its
+# package headers into geode-deps. EXTERNALS would only mark it as externally
+# provided, which leaves the include directory empty in CI.
+setup_geode_mod(${PROJECT_NAME})
 
 # Globed's Soft Link API is header-only. The dependency resolver downloads its
 # headers into geode-deps; do not fetch an unrelated moving nightly branch.
