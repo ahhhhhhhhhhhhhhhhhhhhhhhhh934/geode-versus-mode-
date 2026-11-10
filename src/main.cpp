@@ -761,6 +761,7 @@ namespace Versus {
             if (endpoint.empty()) return;
             m_queueRequestPending = true;
             auto req = web::WebRequest();
+            req.header("apikey", matchmakingAnonKey());
             req.header("Authorization", "Bearer " + m_queueTicket);
             req.timeout(std::chrono::seconds(10));
             m_queueTask.spawn(req.post(endpoint + "/match/ready"),
