@@ -7,7 +7,7 @@
   "name": "Versus Mode",
   "version": "v0.6.12",
   "developer": "Versus Mode Team",
-  "description": "Versus Mode requires Globed for online multiplayer and uses Globed's built-in voice features where supported.",
+  "description": "Requires Globed 2.3.0 or newer for Versus session handoff and multiplayer events.",
   "tags": [
     "gameplay",
     "online",
@@ -15,16 +15,9 @@
   ],
   "dependencies": {
     "dankmeme.globed2": {
-      "version": ">=2.2.2",
+      "version": ">=2.3.0",
       "required": true
     }
   },
-  "settings": {
-    "matchmaking-url": {
-      "type": "string",
-      "name": "Global Matchmaking Server URL",
-      "description": "HTTPS URL of the deployed Versus matchmaking Worker. Leave blank until the service has been deployed.",
-      "default": ""
-    }
-  }
+  "settings": {}
 }
