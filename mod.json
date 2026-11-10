@@ -20,5 +20,13 @@
       "version": ">=2.2.2",
       "required": true
     }
+  },
+  "settings": {
+    "matchmaking-url": {
+      "type": "string",
+      "name": "Global Matchmaking Server URL",
+      "description": "HTTPS URL of the deployed Versus matchmaking Worker. Leave blank until the service has been deployed.",
+      "default": ""
+    }
   }
 }
