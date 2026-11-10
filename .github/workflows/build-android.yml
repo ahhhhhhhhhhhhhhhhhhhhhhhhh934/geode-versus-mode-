@@ -1,4 +1,4 @@
-name: Build Android and iOS Geode mod
+name: Build Android Geode mod
 
 on:
   workflow_dispatch:
@@ -49,32 +49,9 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  build-ios:
-    runs-on: macos-latest
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Build iOS Geode package
-        id: build
-        uses: geode-sdk/build-geode-mod@main
-        with:
-          sdk: given
-          target: iOS
-          path: .
-          build-config: Release
-
-      - name: Upload iOS package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Versus-Mode-iOS
-          path: ${{ steps.build.outputs.build-output }}
-          if-no-files-found: error
-          retention-days: 90
-
   publish-release:
     if: github.ref_type != 'tag' && github.event_name != 'pull_request'
-    needs: [build-android64, build-ios]
+    needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -102,13 +79,7 @@ jobs:
           name: Versus-Mode-Android64
           path: release-assets/android
 
-      - name: Download iOS package
-        uses: actions/download-artifact@v4
-        with:
-          name: Versus-Mode-iOS
-          path: release-assets/ios
-
-      - name: Publish verified multi-platform release
+      - name: Publish verified Android release
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
