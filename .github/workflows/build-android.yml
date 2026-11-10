@@ -50,14 +50,27 @@ jobs:
           retention-days: 90
 
   publish-release:
-    if: github.ref_type != 'tag' && github.event_name != 'pull_request'
+    # Always create a visible result for this job. Only publish on successful
+    # non-PR, non-tag builds; PR validation must never create a GitHub release.
+    if: always()
     needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
+      - name: Explain why release publishing is not running
+        if: github.event_name == 'pull_request' || github.ref_type == 'tag' || needs.build-android64.result != 'success'
+        shell: bash
+        run: |
+          echo "Release publishing job ran, but publishing is disabled for this event or build result."
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Ref type: $GITHUB_REF_TYPE"
+          echo "Android build result: ${{ needs.build-android64.result }}"
+
       - name: Check out source
+        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
         uses: actions/checkout@v4
 
       - name: Validate matching release versions
+        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
         id: version
         shell: bash
         run: |
@@ -74,12 +87,14 @@ jobs:
           echo "version=$MOD_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download Android package
+        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Versus-Mode-Android64
           path: release-assets/android
 
       - name: Publish verified Android release
+        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
