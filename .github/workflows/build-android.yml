@@ -122,8 +122,8 @@ jobs:
           retention-days: 90
 
   publish-release:
-    # Every successful workflow event, including pull_request, publishes its Android package.
-    if: always()
+    # Never publish unless the Android package build completed successfully.
+    if: needs.build-android64.result == 'success'
     needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
