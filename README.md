@@ -1,33 +1,31 @@
 # Geode Versus Mode — Android build project
 
-Target: Geometry Dash 2.2081 / Geode SDK latest stable / Android 64-bit.
+Target: Geometry Dash 2.2081 / Geode SDK 5.11.2 / Android 64-bit.
+
+## Globed requirement
+
+Versus Mode targets **Globed 2.3.0 beta or newer**. The 2.3.0 API adds the session-warp handoff needed for a matchmaking result to send both players into the same Globed session. The build fetches the current Globed nightly headers because the stable v2.2.2 headers do not contain that API.
+
+Install a compatible Globed 2.3.0 beta build before testing online integration. Do not downgrade to Globed 2.2.2; it does not provide the required handoff API.
 
 ## Current implementation status
-- Creator menu Versus entry: hooked into CreatorLayer (the Create/Saved/Scores/Quests screen).
-- Versus lobby screen: implemented in source.
-- Local 1v1: UI placeholder; independent player controls are not implemented.
-- Global matchmaking: queue client for Race, Survival, Dual, and Platformer, with a Cloudflare Durable Object worker for cross-room pairing and two-player ready checks.
-- Online gameplay synchronization: not implemented yet. A successful ready check does not launch or synchronize a Geometry Dash match.
-- Voice chat: not implemented; Globed's audio API needs a separate audio integration.
-- Workshop: not implemented; Geode mod portal integration remains a separate task.
+- Creator menu Versus entry and lobby UI.
+- Globed connection detection through its Soft Link API.
+- Compile-time integration with the Globed 2.3.0 session-warp API, guarded by a runtime version check.
+- Global matchmaking queue client for Race, Survival, Dual, and Platformer.
+- **Not yet complete:** the matchmaking response must supply a validated Globed `SessionId`; both clients must receive the same session handoff; gameplay rules/state synchronization, disconnect recovery, and server-validated results remain to be implemented.
+- Voice chat is provided by Globed where supported; Versus does not implement a separate voice transport.
 
-## Build an actual .geode package
-This repository includes a GitHub Actions workflow at .github/workflows/build-android.yml. Open **Actions → Build Android Geode mod → Run workflow** to start an Android64 build. A successful run uploads the .geode package as the Versus-Mode-Android64 artifact.
+## Build an Android64 package
 
-For a local build, install the Android NDK and Geode CLI/SDK 5.11.2, then run:
+Open **Actions → Build Android Geode mod → Run workflow**. A successful run uploads the `.geode` package as the Versus-Mode-Android64 artifact.
+
+For a local build, install the Android NDK and Geode CLI/SDK, then run:
 ```sh
 geode sdk install-binaries -p android64
 geode build -p android64
 ```
 
-A compiled .geode file is not included until a build succeeds.
+## Matchmaking
 
-
-Build pipeline notes: Releases are Android64-only and use the official Geode build action.
-
-
-## Global matchmaking backend
-
-The deployable Cloudflare Worker is in `backend/`. Follow `backend/README.md` to deploy it, then set the **Global Matchmaking Server URL** in Geode's Versus Mode settings to the Worker URL. Until a server URL is configured, the queue will explain that the backend is not configured rather than pretending to find players.
-
-The queue pairs players by game mode and requires both players to accept. This is a matchmaking milestone, not yet a complete playable multiplayer session: gameplay transport, level handoff, player-state synchronization, disconnect recovery, and result validation remain separate work.
+The existing queue client still speaks to the current matchmaking API. The previous Cloudflare Worker is not being treated as a gameplay server. Matchmaking only finds and pairs players; Globed remains responsible for multiplayer sessions and gameplay networking. The backend must return a trusted Globed session descriptor before Versus can automatically call the 2.3.0 session-warp API.
