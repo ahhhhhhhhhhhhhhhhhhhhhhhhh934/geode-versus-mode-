@@ -1,30 +1,12 @@
 {
   "geode": "5.11.2",
-  "gd": {
-    "android": "2.2081"
-  },
+  "gd": { "android": "2.2081" },
   "id": "versus.mode",
   "name": "Versus Mode",
   "version": "v0.6.12",
   "developer": "Versus Mode Team",
-  "description": "Requires Globed 2.3.0 or newer for Versus session handoff and multiplayer events.",
-  "tags": [
-    "gameplay",
-    "online",
-    "enhancement"
-  ],
-  "dependencies": {
-    "dankmeme.globed2": {
-      "version": ">=2.3.0",
-      "required": true
-    }
-  },
-  "settings": {
-    "matchmaking-url": {
-      "type": "string",
-      "name": "Versus Matchmaking Service URL",
-      "description": "HTTPS URL for the Versus queue and ready-check service. This service does not host gameplay; Globed does.",
-      "default": ""
-    }
-  }
+  "description": "Requires Globed 2.3.0 beta or newer. Supabase powers matchmaking; Globed powers gameplay.",
+  "tags": ["gameplay", "online", "enhancement"],
+  "dependencies": { "dankmeme.globed2": { "version": ">=2.3.0", "required": true } },
+  "settings": { "matchmaking-url": { "type": "string", "name": "Supabase Matchmaking Function URL", "description": "Base URL ending in /functions/v1/versus-matchmaking. Never enter a service-role key here.", "default": "" } }
 }
