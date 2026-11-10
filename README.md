@@ -15,8 +15,21 @@ This release pins the required Globed dependency and public headers to stable **
 ## Honest feature status
 
 - **Plaza / navigation / rank ladder / profile UI:** implemented in this branch.
-- **Globed connection and room status:** integration is under compatibility testing against 2.2.2.
-- **Ranked matchmaking, public/group room directories, LIVE match feed, synchronized Versus gameplay, local split controls, and server-backed profiles:** not implemented yet.
+- **Globed room lobby foundation:** room-scoped join/ready/leave/heartbeat events use Globed's central Server Events API; players must first join the same Globed room. Android device testing is still required.
+- **Automatic public-room discovery, cross-room pairing, automatic room transfer, synchronized Versus gameplay, ranked results, local split controls, and server-backed profiles:** not implemented yet.
 - **Voice:** Globed handles voice inside shared levels. Versus does not directly activate the microphone or manage voice sessions.
 
 A successful CI build is not the same as on-device testing. Verify Globed status on the target phone before merging.
+
+
+## Versus room lobby (development branch)
+
+The lobby no longer needs a separate Cloudflare Worker. It uses Globed's central Server Events API to exchange small lobby-state packets between connected players. Each packet includes a Globed room ID; clients ignore events for other rooms. Players select Race, Survival, Dual, or Platformer, then publish ready state. Heartbeats expire stale lobby entries.
+
+### Current boundaries
+
+- Players must manually create or join the same Globed room using Globed's existing room UI before entering the Versus lobby.
+- The lobby can coordinate presence and ready state among clients in that room.
+- This does not yet create or transfer players into a shared gameplay session, start a level, or synchronize Race/Survival/Dual/Platformer rules.
+- The feature needs an Android64 CI build and a two-device test with Globed 2.2.2 before it can be called working.
+- Central Server Events are used only for low-frequency lobby messages, not frame-by-frame gameplay networking.
