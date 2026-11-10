@@ -15,7 +15,7 @@ add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 # Globed is not published in the Geode index yet, so declare it as an
 # externally supplied runtime dependency. We still fetch its public headers
 # from the upstream source repository for compilation.
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:>=2.3.0)
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0)
 
 include(FetchContent)
 FetchContent_Declare(
