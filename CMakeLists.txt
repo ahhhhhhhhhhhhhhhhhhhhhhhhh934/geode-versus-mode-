@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VersusMode VERSION 0.6.19)
+project(VersusMode VERSION 0.6.18)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
@@ -12,13 +12,23 @@ endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-# Let Geode resolve the dependency declared in mod.json and download its
-# package headers into geode-deps. EXTERNALS would only mark it as externally
-# provided, which leaves the include directory empty in CI.
-setup_geode_mod(${PROJECT_NAME})
+# Globed is not published in the Geode index yet, so declare it as an
+# externally supplied runtime dependency. We still fetch its public headers
+# from the upstream source repository for compilation.
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:>=2.3.0)
 
-# Globed's Soft Link API is header-only. The dependency resolver downloads its
-# headers into geode-deps; do not fetch an unrelated moving nightly branch.
+include(FetchContent)
+FetchContent_Declare(
+    globed_headers
+    GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
+    GIT_TAG 737d2211b6ce00119f752dc07d0d76d2700b6d08
+    GIT_SHALLOW FALSE
+)
+FetchContent_GetProperties(globed_headers)
+if (NOT globed_headers_POPULATED)
+    FetchContent_Populate(globed_headers)
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}/geode-deps/dankmeme.globed2/include
+    ${globed_headers_SOURCE_DIR}/include
 )
