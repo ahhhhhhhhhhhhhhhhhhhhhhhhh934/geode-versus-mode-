@@ -14,7 +14,7 @@ Target: Geometry Dash 2.2081 / Geode SDK latest stable / Android 64-bit.
 ## Build an actual .geode package
 This repository includes a GitHub Actions workflow at .github/workflows/build-android.yml. Open **Actions → Build Android Geode mod → Run workflow** to start an Android64 build. A successful run uploads the .geode package as the Versus-Mode-Android64 artifact.
 
-For a local build, install the Android NDK and Geode CLI/SDK 5.8.2, then run:
+For a local build, install the Android NDK and Geode CLI/SDK 5.11.2, then run:
 ```sh
 geode sdk install-binaries -p android64
 geode build -p android64
