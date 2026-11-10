@@ -309,22 +309,22 @@ namespace Versus {
             heroLine->setPosition({w * 0.07f, h * 0.34f + h * 0.39f - 3.f});
             m_page->addChild(heroLine, 1);
             label("YOUR NEXT MATCH STARTS HERE", 0.39f,
-                {w * 0.50f, h * 0.67f}, {255,224,110});
+                {w * 0.50f, h * 0.69f}, {255,224,110});
             label("A new home for Geometry Dash competition", 0.27f,
-                {w * 0.50f, h * 0.60f}, {195,218,245});
+                {w * 0.50f, h * 0.61f}, {195,218,245});
             label(fmt::format("{}  •  {} RP", rankName(rankPoints()), rankPoints()).c_str(),
-                0.30f, {w * 0.50f, h * 0.51f}, {145,220,255});
+                0.30f, {w * 0.50f, h * 0.53f}, {145,220,255});
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button("OPEN PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
-                {w * 0.50f, h * 0.43f}, "GJ_button_05.png", 0.66f));
+                {w * 0.50f, h * 0.40f}, "GJ_button_05.png", 0.66f));
             menu->addChild(button("RANKS", menu_selector(LobbyLayer::onRanked),
-                {w * 0.27f, h * 0.25f}, "GJ_button_02.png", 0.48f));
+                {w * 0.25f, h * 0.23f}, "GJ_button_02.png", 0.48f));
             menu->addChild(button("ROOMS", menu_selector(LobbyLayer::onPublicRooms),
-                {w * 0.50f, h * 0.25f}, "GJ_button_04.png", 0.48f));
+                {w * 0.50f, h * 0.23f}, "GJ_button_04.png", 0.48f));
             menu->addChild(button("PROFILE", menu_selector(LobbyLayer::onProfile),
-                {w * 0.73f, h * 0.25f}, "GJ_button_03.png", 0.48f));
+                {w * 0.75f, h * 0.23f}, "GJ_button_03.png", 0.48f));
             menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
                 {w * 0.50f, 42.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
@@ -352,17 +352,17 @@ namespace Versus {
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button("FIND MATCH", menu_selector(LobbyLayer::onOnline),
-                {w * 0.50f, h * 0.53f}, "GJ_button_05.png", 0.56f));
+                {w * 0.50f, h * 0.55f}, "GJ_button_05.png", 0.56f));
             menu->addChild(button("RANKED", menu_selector(LobbyLayer::onRanked),
-                {w * 0.27f, h * 0.41f}, "GJ_button_02.png", 0.44f));
+                {w * 0.25f, h * 0.40f}, "GJ_button_02.png", 0.44f));
             menu->addChild(button("PUBLIC ROOMS", menu_selector(LobbyLayer::onPublicRooms),
-                {w * 0.73f, h * 0.41f}, "GJ_button_04.png", 0.42f));
+                {w * 0.75f, h * 0.40f}, "GJ_button_04.png", 0.42f));
             menu->addChild(button("GROUP ROOMS", menu_selector(LobbyLayer::onGroupRooms),
-                {w * 0.27f, h * 0.30f}, "GJ_button_01.png", 0.42f));
+                {w * 0.25f, h * 0.27f}, "GJ_button_01.png", 0.42f));
             menu->addChild(button("LIVE", menu_selector(LobbyLayer::onLive),
-                {w * 0.73f, h * 0.30f}, "GJ_button_03.png", 0.44f));
+                {w * 0.75f, h * 0.27f}, "GJ_button_03.png", 0.44f));
             menu->addChild(button("PROFILE", menu_selector(LobbyLayer::onProfile),
-                {w * 0.50f, h * 0.19f}, "GJ_button_02.png", 0.42f));
+                {w * 0.50f, h * 0.15f}, "GJ_button_02.png", 0.42f));
             menu->addChild(button("HOME", menu_selector(LobbyLayer::onDashboard),
                 {w * 0.50f, 38.f}, "GJ_button_01.png", 0.43f));
             m_page->addChild(menu, 5);
@@ -608,19 +608,19 @@ namespace Versus {
             auto w = m_size.width;
             auto h = m_size.height;
             addCard({w * 0.50f, h * 0.61f}, {w * 0.88f, h * 0.34f}, {12, 31, 65, 250});
-            label("SELECT YOUR GAME MODE", 0.34f, {w * 0.50f, h * 0.75f}, {255,220,92});
+            label("SELECT YOUR GAME MODE", 0.34f, {w * 0.50f, h * 0.78f}, {255,220,92});
             label(fmt::format("GLOBED ROOM  {}", globedRoomId()).c_str(), 0.22f,
-                {w * 0.50f, h * 0.68f}, {160,215,255});
+                {w * 0.50f, h * 0.70f}, {160,215,255});
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button("RACE", menu_selector(LobbyLayer::onQueueRace),
-                {w * 0.28f, h * 0.53f}, "GJ_button_05.png", 0.46f));
+                {w * 0.25f, h * 0.52f}, "GJ_button_05.png", 0.46f));
             menu->addChild(button("SURVIVAL", menu_selector(LobbyLayer::onQueueSurvival),
-                {w * 0.72f, h * 0.53f}, "GJ_button_05.png", 0.46f));
+                {w * 0.75f, h * 0.52f}, "GJ_button_05.png", 0.46f));
             menu->addChild(button("DUAL", menu_selector(LobbyLayer::onQueueDual),
-                {w * 0.28f, h * 0.39f}, "GJ_button_04.png", 0.46f));
+                {w * 0.25f, h * 0.34f}, "GJ_button_04.png", 0.46f));
             menu->addChild(button("PLATFORMER", menu_selector(LobbyLayer::onQueuePlatformer),
-                {w * 0.72f, h * 0.39f}, "GJ_button_04.png", 0.40f));
+                {w * 0.75f, h * 0.34f}, "GJ_button_04.png", 0.40f));
             menu->addChild(button("BACK", menu_selector(LobbyLayer::onBack),
                 {w * 0.50f, 38.f}, "GJ_button_01.png", 0.44f));
             m_page->addChild(menu, 5);
@@ -647,13 +647,13 @@ namespace Versus {
             label(players.empty() ? "Waiting for another player in this room..." :
                 "Players in this Versus mode are listed by their Globed account IDs.",
                 0.18f, {w * 0.50f, h * 0.51f}, {205,220,245});
-            float listY = h * 0.43f;
+            float listY = h * 0.42f;
             for (auto const& player : players) {
                 label(fmt::format("PLAYER {}  •  {}", player.accountId,
                     player.ready ? "READY" : "NOT READY").c_str(),
                     0.19f, {w * 0.50f, listY}, player.ready ?
                     ccColor3B{115,255,170} : ccColor3B{255,195,115});
-                listY -= 22.f;
+                listY -= 26.f;
                 if (listY < h * 0.20f) break;
             }
             if (players.size() + 1 >= 2 && readyCount == players.size() + 1) {
@@ -664,9 +664,9 @@ namespace Versus {
             menu->setPosition({0,0});
             menu->addChild(button(VersusLobby::ready() ? "UNREADY" : "READY",
                 menu_selector(LobbyLayer::onToggleReady),
-                {w * 0.30f, 44.f}, "GJ_button_05.png", 0.47f));
+                {w * 0.28f, 42.f}, "GJ_button_05.png", 0.47f));
             menu->addChild(button("LEAVE", menu_selector(LobbyLayer::onCancelQueue),
-                {w * 0.70f, 44.f}, "GJ_button_01.png", 0.47f));
+                {w * 0.72f, 42.f}, "GJ_button_01.png", 0.47f));
             m_page->addChild(menu, 5);
         }
 
