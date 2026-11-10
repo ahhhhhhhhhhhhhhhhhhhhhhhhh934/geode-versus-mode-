@@ -30,7 +30,7 @@ export default {
       if (!["race", "survival", "dual", "platformer"].includes(mode)) {
         return json({ error: "invalid_mode" }, 400);
       }
-      const id = env.MATCHMAKER.idFromName(mode);
+      const id = env.MATCHMAKER.idFromName("global");
       return env.MATCHMAKER.get(id).fetch("https://matchmaker/queue/join", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ mode }),
@@ -90,12 +90,12 @@ export class Matchmaker {
     let opponent = null;
 
     for (const [key, value] of waiting) {
-      if (value.state === "searching" && now - value.createdAt < 120000) {
+      if (value.mode === mode && value.state === "searching" && now - value.createdAt < 120000) {
         opponentKey = key;
         opponent = value;
         break;
       }
-      if (value.state === "searching") {
+      if (value.mode === mode && value.state === "searching") {
         await this.ctx.storage.delete(key);
       }
     }
