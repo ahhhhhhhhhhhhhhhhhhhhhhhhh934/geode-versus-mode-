@@ -32,6 +32,8 @@ $$;
 create or replace function public.versus_match_ready(p_ticket uuid) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare v_record public.versus_queue%rowtype; v_other public.versus_queue%rowtype;
 begin
+ perform pg_advisory_xact_lock(hashtext('versus-global-queue'));
+ update public.versus_queue set state='cancelled',opponent=null where state in ('searching','ready-check') and created_at<now()-interval '2 minutes';
  select * into v_record from public.versus_queue where ticket=p_ticket for update;
  if not found then return jsonb_build_object('state','not_found'); end if;
  if v_record.state='ready' then return jsonb_build_object('state','ready'); end if;
