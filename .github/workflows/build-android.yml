@@ -29,66 +29,53 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Bump patch release version for this workflow event
+      - name: Prepare release version
         id: bump
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
           REF_TYPE: ${{ github.ref_type }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          if [[ "$EVENT_NAME" == "pull_request" && "$PR_HEAD_REPO" != "$GITHUB_REPOSITORY" ]]; then
-            echo "::error::Cannot persist an automatic version bump to a forked pull-request branch."
-            exit 1
-          fi
-
           CURRENT="$(jq -r '.version' mod.json)"
-          if [[ ! "$CURRENT" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          if [[ ! "$CURRENT" =~ ^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$ ]]; then
             echo "::error::Invalid mod.json version: $CURRENT"
             exit 1
           fi
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
-          PATCH=$((BASH_REMATCH[3] + 1))
-          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
-          CMAKE_CURRENT="$(sed -nE 's/^project\(VersusMode VERSION ([0-9]+\.[0-9]+\.[0-9]+)\).*/\1/p' CMakeLists.txt)"
-          if [[ "$CMAKE_CURRENT" != "${MAJOR}.${MINOR}.${BASH_REMATCH[3]}" ]]; then
-            echo "::error::Version mismatch before bump: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
+          PATCH="${BASH_REMATCH[3]}"
+          CMAKE_CURRENT="$(sed -nE 's/^project\\(VersusMode VERSION ([0-9]+\\.[0-9]+\\.[0-9]+)\\).*/\\1/p' CMakeLists.txt)"
+          if [[ "$CMAKE_CURRENT" != "$MAJOR.$MINOR.$PATCH" ]]; then
+            echo "::error::Version mismatch: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
             exit 1
           fi
 
-          jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
-          mv mod.json.tmp mod.json
-          sed -i -E "s/^(project\(VersusMode VERSION )[0-9]+\.[0-9]+\.[0-9]+(\).*)$/\1${MAJOR}.${MINOR}.${PATCH}\2/" CMakeLists.txt
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mod.json CMakeLists.txt
-          git commit -m "chore: bump release version to $NEXT [skip ci]"
-          BUMP_COMMIT="$(git rev-parse HEAD)"
-          if [[ "$REF_TYPE" == "tag" ]]; then
-            BUMP_BRANCH="$DEFAULT_BRANCH"
-          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
-            BUMP_BRANCH="$PR_HEAD_BRANCH"
-          else
-            BUMP_BRANCH="$GITHUB_REF_NAME"
-          fi
-          git push origin "HEAD:$BUMP_BRANCH"
-
-          # A tag-triggered build must package the tagged source, not the
-          # default-branch commit used to advance the next development version.
-          RELEASE_TARGET="$BUMP_COMMIT"
-          if [[ "$REF_TYPE" == "tag" ]]; then
-            git checkout --detach "$GITHUB_SHA"
+          # PRs only validate/build the proposed code. They must not mutate the
+          # branch or publish a release. This also prevents PR-sync version loops.
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            NEXT="$CURRENT"
+            RELEASE_TARGET="$GITHUB_SHA"
+          elif [[ "$REF_TYPE" == "tag" ]]; then
             NEXT="$GITHUB_REF_NAME"
             RELEASE_TARGET="$GITHUB_SHA"
+          else
+            PATCH=$((PATCH + 1))
+            NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+            jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
+            mv mod.json.tmp mod.json
+            sed -i -E "s/^(project\\(VersusMode VERSION )[0-9]+\\.[0-9]+\\.[0-9]+(\\).*)$/\\1${MAJOR}.${MINOR}.${PATCH}\\2/" CMakeLists.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add mod.json CMakeLists.txt
+            git commit -m "chore: bump release version to $NEXT [skip ci]"
+            RELEASE_TARGET="$(git rev-parse HEAD)"
+            git push origin "HEAD:$GITHUB_REF_NAME"
           fi
 
           echo "version=$NEXT" >> "$GITHUB_OUTPUT"
           echo "commit=$RELEASE_TARGET" >> "$GITHUB_OUTPUT"
-          echo "Bumped release version to $NEXT"
+          echo "Prepared version $NEXT"
 
       - name: Validate release version
         shell: bash
