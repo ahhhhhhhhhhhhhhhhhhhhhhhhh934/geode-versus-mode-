@@ -38,33 +38,36 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           CURRENT="$(jq -r '.version' mod.json)"
-          if [[ ! "$CURRENT" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          if [[ ! "$CURRENT" =~ ^v[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
             echo "::error::Invalid mod.json version: $CURRENT"
             exit 1
           fi
-          MAJOR="${BASH_REMATCH[1]}"
-          MINOR="${BASH_REMATCH[2]}"
-          PATCH="${BASH_REMATCH[3]}"
-          CMAKE_CURRENT="$(sed -nE 's/^project\\(VersusMode VERSION ([0-9]+\.[0-9]+\.[0-9]+)\\).*/\\1/p' CMakeLists.txt)"
+
+          VERSION_PARTS="${CURRENT#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_PARTS"
+          CMAKE_CURRENT="$(awk '/^project/ { for (i=1;i<=NF;i++) if ($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)"
           if [[ "$CMAKE_CURRENT" != "$MAJOR.$MINOR.$PATCH" ]]; then
             echo "::error::Version mismatch: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
             exit 1
           fi
 
-          # PRs only validate/build the proposed code. They must not mutate the
-          # branch or publish a release. This also prevents PR-sync version loops.
+          # PR and feature-branch runs validate/build only. Releases are made
+          # only from the default branch, tags, or an explicit manual run.
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             NEXT="$CURRENT"
             RELEASE_TARGET="$GITHUB_SHA"
           elif [[ "$REF_TYPE" == "tag" ]]; then
             NEXT="$GITHUB_REF_NAME"
             RELEASE_TARGET="$GITHUB_SHA"
+          elif [[ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]]; then
+            NEXT="$CURRENT"
+            RELEASE_TARGET="$GITHUB_SHA"
           else
             PATCH=$((PATCH + 1))
             NEXT="v${MAJOR}.${MINOR}.${PATCH}"
             jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
             mv mod.json.tmp mod.json
-            sed -i -E "s/^(project\\(VersusMode VERSION )[0-9]+\.[0-9]+\.[0-9]+(\\).*)$/\\1${MAJOR}.${MINOR}.${PATCH}\\2/" CMakeLists.txt
+            sed -i "s/VERSION $MAJOR.$MINOR.$((PATCH - 1))/VERSION $MAJOR.$MINOR.$PATCH/" CMakeLists.txt
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add mod.json CMakeLists.txt
@@ -110,7 +113,7 @@ jobs:
 
   publish-release:
     # Never publish unless the Android package build completed successfully.
-    if: needs.build-android64.result == 'success' && github.event_name != 'pull_request'
+    if: needs.build-android64.result == 'success' && github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch)
     needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
