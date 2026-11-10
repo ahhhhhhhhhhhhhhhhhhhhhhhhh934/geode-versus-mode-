@@ -1,12 +1,36 @@
 {
   "geode": "5.11.2",
-  "gd": { "android": "2.2081" },
+  "gd": {
+    "android": "2.2081"
+  },
   "id": "versus.mode",
   "name": "Versus Mode",
   "version": "v0.6.12",
   "developer": "Versus Mode Team",
   "description": "Requires Globed 2.3.0 beta or newer. Supabase powers matchmaking; Globed powers gameplay.",
-  "tags": ["gameplay", "online", "enhancement"],
-  "dependencies": { "dankmeme.globed2": { "version": ">=2.3.0", "required": true } },
-  "settings": { "matchmaking-url": { "type": "string", "name": "Supabase Matchmaking Function URL", "description": "Base URL ending in /functions/v1/versus-matchmaking. Never enter a service-role key here.", "default": "" } }
+  "tags": [
+    "gameplay",
+    "online",
+    "enhancement"
+  ],
+  "dependencies": {
+    "dankmeme.globed2": {
+      "version": ">=2.3.0",
+      "required": true
+    }
+  },
+  "settings": {
+    "matchmaking-url": {
+      "type": "string",
+      "name": "Supabase Matchmaking Function URL",
+      "description": "Base URL ending in /functions/v1/versus-matchmaking. Never enter a service-role key here.",
+      "default": ""
+    },
+    "matchmaking-anon-key": {
+      "type": "string",
+      "name": "Supabase Project Anon Key",
+      "description": "Public anon/publishable key for your Supabase project. Do not use the service-role key.",
+      "default": ""
+    }
+  }
 }
