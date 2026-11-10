@@ -19,5 +19,12 @@
       "required": true
     }
   },
-  "settings": {}
+  "settings": {
+    "matchmaking-url": {
+      "type": "string",
+      "name": "Versus Matchmaking Service URL",
+      "description": "HTTPS URL for the Versus queue and ready-check service. This service does not host gameplay; Globed does.",
+      "default": ""
+    }
+  }
 }
