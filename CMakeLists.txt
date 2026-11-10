@@ -11,19 +11,13 @@ if (NOT DEFINED ENV{GEODE_SDK})
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
+
+# Pull the Globed beta dependency through Geode's dependency resolver so the
+# headers and runtime mod package always come from the same pinned release.
 setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0)
 
-include(FetchContent)
-FetchContent_Declare(globed2_headers
-    GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
-    GIT_TAG nightly
-    GIT_SHALLOW TRUE
-)
-FetchContent_GetProperties(globed2_headers)
-if (NOT globed2_headers_POPULATED)
-    FetchContent_Populate(globed2_headers)
-endif()
+# Globed's Soft Link API is header-only. The dependency resolver downloads its
+# headers into geode-deps; do not fetch an unrelated moving nightly branch.
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${globed2_headers_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/geode-deps/dankmeme.globed2/include
 )
-
