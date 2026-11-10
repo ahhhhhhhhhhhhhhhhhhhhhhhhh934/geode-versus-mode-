@@ -243,23 +243,45 @@ namespace Versus {
             m_page = CCLayer::create();
             this->addChild(m_page, 1);
 
-            auto* shade = CCLayerColor::create({7, 12, 31, 245});
+            auto* shade = CCLayerColor::create({5, 9, 24, 250});
             m_page->addChild(shade, -5);
-            auto* glow = CCLayerColor::create({28, 70, 132, 130}, m_size.width, 4.f);
-            glow->setPosition({0.f, m_size.height - 5.f});
-            m_page->addChild(glow, -4);
 
-            label(title, 0.78f, {m_size.width/2, m_size.height - 42.f}, {255,224,110});
-            label(subtitle, 0.34f, {m_size.width/2, m_size.height - 70.f}, {185,210,245});
+            // Subtle GD-style grid and neon frame accents keep the UI from
+            // feeling like a flat settings menu.
+            for (float x = 0.f; x < m_size.width; x += 48.f) {
+                auto* grid = CCLayerColor::create({24, 48, 82, 70}, 1.f, m_size.height);
+                grid->setPosition({x, 0.f});
+                m_page->addChild(grid, -4);
+            }
+            for (float y = 24.f; y < m_size.height; y += 48.f) {
+                auto* grid = CCLayerColor::create({24, 48, 82, 70}, m_size.width, 1.f);
+                grid->setPosition({0.f, y});
+                m_page->addChild(grid, -4);
+            }
+            auto* glow = CCLayerColor::create({35, 180, 255, 210}, m_size.width, 4.f);
+            glow->setPosition({0.f, m_size.height - 5.f});
+            m_page->addChild(glow, -3);
+            auto* lowerGlow = CCLayerColor::create({255, 190, 65, 150}, m_size.width, 2.f);
+            lowerGlow->setPosition({0.f, 5.f});
+            m_page->addChild(lowerGlow, -3);
+
+            label(title, 0.76f, {m_size.width/2, m_size.height - 40.f}, {255,220,92});
+            label(subtitle, 0.31f, {m_size.width/2, m_size.height - 72.f}, {160,215,255});
+            auto* titleBar = CCLayerColor::create({255, 190, 65, 230}, m_size.width * 0.34f, 2.f);
+            titleBar->setPosition({m_size.width * 0.33f, m_size.height - 84.f});
+            m_page->addChild(titleBar, 2);
         }
 
         void addCard(CCPoint center, CCSize size, ccColor4B tint) {
             auto* card = CCLayerColor::create(tint, size.width, size.height);
             card->setPosition({center.x-size.width/2, center.y-size.height/2});
             m_page->addChild(card, 0);
-            auto* edge = CCLayerColor::create({100,190,255,255}, size.width, 2.f);
-            edge->setPosition({0.f,size.height-2.f});
+            auto* edge = CCLayerColor::create({70,205,255,255}, size.width, 3.f);
+            edge->setPosition({0.f,size.height-3.f});
             card->addChild(edge, 1);
+            auto* bottomEdge = CCLayerColor::create({255,190,65,210}, size.width, 2.f);
+            bottomEdge->setPosition({0.f,0.f});
+            card->addChild(bottomEdge, 1);
         }
 
         void showHome() {
@@ -306,7 +328,7 @@ namespace Versus {
             menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
                 {w * 0.50f, 42.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.6.5", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.6.7", 0.20f, {w/2.f, 16.f}, {125,185,225});
         }
 
         void showPlaza() {
@@ -585,22 +607,22 @@ namespace Versus {
             basePage("VERSUS LOBBY", "MATCH WITH PLAYERS IN YOUR GLOBED ROOM");
             auto w = m_size.width;
             auto h = m_size.height;
-            addCard({w * 0.50f, h * 0.62f}, {w * 0.88f, h * 0.30f}, {16, 39, 75, 250});
-            label("SELECT YOUR GAME MODE", 0.36f, {w * 0.50f, h * 0.72f}, {255,224,110});
-            label(fmt::format("GLOBED ROOM  {}", globedRoomId()).c_str(), 0.24f,
-                {w * 0.50f, h * 0.64f}, {190,215,245});
+            addCard({w * 0.50f, h * 0.61f}, {w * 0.88f, h * 0.34f}, {12, 31, 65, 250});
+            label("SELECT YOUR GAME MODE", 0.34f, {w * 0.50f, h * 0.75f}, {255,220,92});
+            label(fmt::format("GLOBED ROOM  {}", globedRoomId()).c_str(), 0.22f,
+                {w * 0.50f, h * 0.68f}, {160,215,255});
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button("RACE", menu_selector(LobbyLayer::onQueueRace),
-                {w * 0.28f, h * 0.52f}, "GJ_button_05.png", 0.50f));
+                {w * 0.28f, h * 0.53f}, "GJ_button_05.png", 0.46f));
             menu->addChild(button("SURVIVAL", menu_selector(LobbyLayer::onQueueSurvival),
-                {w * 0.72f, h * 0.52f}, "GJ_button_05.png", 0.50f));
+                {w * 0.72f, h * 0.53f}, "GJ_button_05.png", 0.46f));
             menu->addChild(button("DUAL", menu_selector(LobbyLayer::onQueueDual),
-                {w * 0.28f, h * 0.40f}, "GJ_button_04.png", 0.50f));
+                {w * 0.28f, h * 0.39f}, "GJ_button_04.png", 0.46f));
             menu->addChild(button("PLATFORMER", menu_selector(LobbyLayer::onQueuePlatformer),
-                {w * 0.72f, h * 0.40f}, "GJ_button_04.png", 0.43f));
+                {w * 0.72f, h * 0.39f}, "GJ_button_04.png", 0.40f));
             menu->addChild(button("BACK", menu_selector(LobbyLayer::onBack),
-                {w * 0.50f, 42.f}, "GJ_button_01.png", 0.48f));
+                {w * 0.50f, 38.f}, "GJ_button_01.png", 0.44f));
             m_page->addChild(menu, 5);
         }
 
@@ -616,35 +638,35 @@ namespace Versus {
             auto players = VersusLobby::players(mode);
             size_t readyCount = VersusLobby::ready() ? 1 : 0;
             for (auto const& player : players) if (player.ready) ++readyCount;
-            addCard({w * 0.50f, h * 0.62f}, {w * 0.88f, h * 0.36f}, {16, 39, 75, 250});
-            label(modeName, 0.43f, {w * 0.50f, h * 0.76f}, {255,224,110});
+            addCard({w * 0.50f, h * 0.60f}, {w * 0.88f, h * 0.43f}, {12, 31, 65, 252});
+            label(modeName, 0.42f, {w * 0.50f, h * 0.79f}, {255,220,92});
             label(fmt::format("ROOM {}  •  {} PLAYER(S)", VersusLobby::roomId(), players.size() + 1).c_str(),
-                0.25f, {w * 0.50f, h * 0.67f}, {190,215,245});
+                0.23f, {w * 0.50f, h * 0.70f}, {160,215,255});
             label(fmt::format("{} READY", readyCount).c_str(),
-                0.30f, {w * 0.50f, h * 0.57f}, {145,220,255});
+                0.28f, {w * 0.50f, h * 0.60f}, {120,245,190});
             label(players.empty() ? "Waiting for another player in this room..." :
                 "Players in this Versus mode are listed by their Globed account IDs.",
-                0.20f, {w * 0.50f, h * 0.48f}, {190,215,245});
-            float listY = h * 0.41f;
+                0.18f, {w * 0.50f, h * 0.51f}, {205,220,245});
+            float listY = h * 0.43f;
             for (auto const& player : players) {
                 label(fmt::format("PLAYER {}  •  {}", player.accountId,
                     player.ready ? "READY" : "NOT READY").c_str(),
                     0.19f, {w * 0.50f, listY}, player.ready ?
                     ccColor3B{115,255,170} : ccColor3B{255,195,115});
-                listY -= 18.f;
-                if (listY < h * 0.19f) break;
+                listY -= 22.f;
+                if (listY < h * 0.20f) break;
             }
             if (players.size() + 1 >= 2 && readyCount == players.size() + 1) {
                 label("LOBBY READY — GAME SESSION INTEGRATION NEXT", 0.20f,
-                    {w * 0.50f, h * 0.16f}, {115,255,170});
+                    {w * 0.50f, h * 0.18f}, {115,255,170});
             }
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
             menu->addChild(button(VersusLobby::ready() ? "UNREADY" : "READY",
                 menu_selector(LobbyLayer::onToggleReady),
-                {w * 0.28f, 48.f}, "GJ_button_05.png", 0.50f));
+                {w * 0.30f, 44.f}, "GJ_button_05.png", 0.47f));
             menu->addChild(button("LEAVE", menu_selector(LobbyLayer::onCancelQueue),
-                {w * 0.72f, 48.f}, "GJ_button_01.png", 0.50f));
+                {w * 0.70f, 44.f}, "GJ_button_01.png", 0.47f));
             m_page->addChild(menu, 5);
         }
 
