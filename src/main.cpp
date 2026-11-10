@@ -644,6 +644,10 @@ namespace Versus {
             return endpoint;
         }
 
+        std::string matchmakingAnonKey() {
+            return Mod::get()->getSettingValue<std::string>("matchmaking-anon-key");
+        }
+
         void queueForMode(char const* mode) {
             if (!globedLoaded() || !globedApiAvailable() || !globedConnected()) {
                 showInfo("GLOBAL MATCHMAKING", "GLOBED REQUIRED", "NOT CONNECTED",
@@ -652,10 +656,10 @@ namespace Versus {
                 return;
             }
             auto endpoint = matchmakingEndpoint();
-            if (endpoint.empty()) {
-                showInfo("GLOBAL MATCHMAKING", "SERVER NOT CONFIGURED", "BACKEND URL MISSING",
-                    "The queue client is ready, but the public service URL is not configured.",
-                    "The backend must be deployed before this can connect.");
+            if (endpoint.empty() || matchmakingAnonKey().empty()) {
+                showInfo("GLOBAL MATCHMAKING", "SERVER NOT CONFIGURED", "SUPABASE SETTINGS MISSING",
+                    "Set the Supabase function URL and project anon/publishable key in Geode settings.",
+                    "Never enter the Supabase service-role key in the mod.");
                 return;
             }
             m_queueMode = mode;
@@ -666,6 +670,7 @@ namespace Versus {
             showQueueStatus("JOINING GLOBAL QUEUE", "Contacting matchmaking service...", mode);
             auto req = web::WebRequest();
             req.header("Content-Type", "application/json");
+            req.header("apikey", matchmakingAnonKey());
             req.timeout(std::chrono::seconds(12));
             req.bodyString(fmt::format(R"({{"mode":"{}","region":"global","ranked":false}})", mode));
             m_queueTask.spawn(req.post(endpoint + "/queue/join"),
@@ -711,6 +716,7 @@ namespace Versus {
             if (endpoint.empty() || m_queueTicket.empty() || m_queueRequestPending) return;
             m_queueRequestPending = true;
             auto req = web::WebRequest();
+            req.header("apikey", matchmakingAnonKey());
             req.header("Authorization", "Bearer " + m_queueTicket);
             req.timeout(std::chrono::seconds(10));
             m_queueTask.spawn(req.get(endpoint + "/queue/status"),
@@ -793,6 +799,7 @@ namespace Versus {
             m_queuePollTimer = 0.f;
             if (!endpoint.empty()) {
                 auto req = web::WebRequest();
+                req.header("apikey", matchmakingAnonKey());
                 req.header("Authorization", "Bearer " + ticket);
                 req.timeout(std::chrono::seconds(8));
                 m_queueTask.spawn(req.post(endpoint + "/queue/leave"), [](web::WebResponse) {});
