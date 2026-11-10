@@ -1,4 +1,4 @@
-name: Build Android and iOS Geode mod
+name: Build Android Geode mod
 
 on:
   workflow_dispatch:
@@ -6,6 +6,8 @@ on:
     branches: [ main ]
     tags:
       - 'v*'
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: write
@@ -13,21 +15,91 @@ permissions:
 jobs:
   build-android64:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      commit: ${{ steps.bump.outputs.commit }}
     steps:
-      - name: Check out source
+      - name: Check out source branch
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || (github.ref_type == 'tag' && github.event.repository.default_branch) || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Read release version
-        id: version
+      - name: Bump patch release version for this workflow event
+        id: bump
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          VERSION="$(jq -r '.version' mod.json)"
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then VERSION="${GITHUB_REF_NAME}"; fi
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid release version: $VERSION"
+          if [[ "$EVENT_NAME" == "pull_request" && "$PR_HEAD_REPO" != "$GITHUB_REPOSITORY" ]]; then
+            echo "::error::Cannot persist an automatic version bump to a forked pull-request branch."
             exit 1
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          CURRENT="$(jq -r '.version' mod.json)"
+          if [[ ! "$CURRENT" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Invalid mod.json version: $CURRENT"
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH=$((BASH_REMATCH[3] + 1))
+          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+          CMAKE_CURRENT="$(sed -nE 's/^project\(VersusMode VERSION ([0-9]+\.[0-9]+\.[0-9]+)\).*/\1/p' CMakeLists.txt)"
+          if [[ "$CMAKE_CURRENT" != "${MAJOR}.${MINOR}.${BASH_REMATCH[3]}" ]]; then
+            echo "::error::Version mismatch before bump: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
+            exit 1
+          fi
+
+          jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
+          mv mod.json.tmp mod.json
+          sed -i -E "s/^(project\(VersusMode VERSION )[0-9]+\.[0-9]+\.[0-9]+(\).*)$/\1${MAJOR}.${MINOR}.${PATCH}\2/" CMakeLists.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mod.json CMakeLists.txt
+          git commit -m "chore: bump release version to $NEXT [skip ci]"
+          BUMP_COMMIT="$(git rev-parse HEAD)"
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            BUMP_BRANCH="$DEFAULT_BRANCH"
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            BUMP_BRANCH="$PR_HEAD_BRANCH"
+          else
+            BUMP_BRANCH="$GITHUB_REF_NAME"
+          fi
+          git push origin "HEAD:$BUMP_BRANCH"
+
+          # A tag-triggered build must package the tagged source, not the
+          # default-branch commit used to advance the next development version.
+          RELEASE_TARGET="$BUMP_COMMIT"
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            git checkout --detach "$GITHUB_SHA"
+            NEXT="$GITHUB_REF_NAME"
+            RELEASE_TARGET="$GITHUB_SHA"
+          fi
+
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "commit=$RELEASE_TARGET" >> "$GITHUB_OUTPUT"
+          echo "Bumped release version to $NEXT"
+
+      - name: Validate release version
+        shell: bash
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_TYPE" == "tag" ]]; then VERSION="$REF_NAME"; fi
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release version: $VERSION"
+            exit 1
+          fi
 
       - name: Build Android64 Geode package
         id: build
@@ -47,71 +119,39 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  build-ios:
-    runs-on: macos-latest
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Build iOS Geode package
-        id: build
-        uses: geode-sdk/build-geode-mod@main
-        with:
-          sdk: given
-          target: iOS
-          path: .
-          build-config: Release
-
-      - name: Upload iOS package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Versus-Mode-iOS
-          path: ${{ steps.build.outputs.build-output }}
-          if-no-files-found: error
-          retention-days: 90
-
   publish-release:
-    if: github.ref_type != 'tag'
-    needs: [build-android64, build-ios]
+    # Every successful workflow event, including pull_request, publishes its Android package.
+    if: always()
+    needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Validate matching release versions
+      - name: Validate bumped release version
+        if: needs.build-android64.result == 'success'
         id: version
         shell: bash
+        env:
+          VERSION: ${{ needs.build-android64.outputs.version }}
         run: |
-          MOD_VERSION="$(jq -r '.version' mod.json)"
-          CMAKE_VERSION="$(sed -nE 's/^project\(VersusMode VERSION ([0-9]+\.[0-9]+\.[0-9]+)\).*/\1/p' CMakeLists.txt)"
-          if [[ ! "$MOD_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid mod.json version: $MOD_VERSION"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release version: $VERSION"
             exit 1
           fi
-          if [[ "$MOD_VERSION" != "v$CMAKE_VERSION" ]]; then
-            echo "Version mismatch: mod.json=$MOD_VERSION, CMake=$CMAKE_VERSION"
-            exit 1
-          fi
-          echo "version=$MOD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download Android package
+        if: needs.build-android64.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Versus-Mode-Android64
           path: release-assets/android
 
-      - name: Download iOS package
-        uses: actions/download-artifact@v4
-        with:
-          name: Versus-Mode-iOS
-          path: release-assets/ios
-
-      - name: Publish verified multi-platform release
+      - name: Publish verified Android release
+        if: needs.build-android64.result == 'success'
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
           tag_name: ${{ steps.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ needs.build-android64.outputs.commit }}
           generate_release_notes: true
           files: release-assets/**/*.geode
           fail_on_unmatched_files: true
