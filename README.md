@@ -23,7 +23,7 @@ geode build -p android64
 A compiled .geode file is not included until a build succeeds.
 
 
-Build pipeline notes: Android builds use the latest stable Geode SDK to avoid pinning a broken release metadata lookup. iOS builds run on macOS using the official Geode build action, not a nonexistent Docker image.
+Build pipeline notes: Releases are Android64-only and use the official Geode build action.
 
 
 ## Global matchmaking backend
