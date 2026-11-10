@@ -5,7 +5,7 @@
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v0.6.18",
+  "version": "v0.6.19",
   "developer": "Versus Mode Team",
   "description": "Requires Globed 2.3.0 beta or newer. Supabase powers matchmaking; Globed powers gameplay.",
   "tags": [
