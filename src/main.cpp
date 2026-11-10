@@ -158,6 +158,7 @@ namespace Versus {
         std::string m_queueState;
         float m_queuePollTimer = 0.f;
         bool m_queueRequestPending = false;
+        bool m_matchReady = false;
 
         float m_globedWait = 0.f;
         float m_loadingPulse = 0.f;
@@ -166,7 +167,7 @@ namespace Versus {
 
         void update(float dt) override {
             CCLayer::update(dt);
-            if (!m_queueTicket.empty() && !m_queueRequestPending) {
+            if (!m_queueTicket.empty() && !m_queueRequestPending && !m_matchReady) {
                 m_queuePollTimer += dt;
                 if (m_queuePollTimer >= 2.f) {
                     m_queuePollTimer = 0.f;
@@ -642,6 +643,7 @@ namespace Versus {
             }
             m_queueMode = mode;
             m_queueTicket.clear();
+            m_matchReady = false;
             m_queueState = "joining";
             m_queueRequestPending = true;
             showQueueStatus("JOINING GLOBAL QUEUE", "Contacting matchmaking service...", mode);
@@ -715,6 +717,7 @@ namespace Versus {
                         confirmGlobalMatch();
                     } else if (state == "ready") {
                         m_queueState = state;
+                        m_matchReady = true;
                         showInfo("GLOBAL MATCHMAKING", "MATCH FOUND", "BOTH PLAYERS READY",
                             "The global service paired you and both players accepted.",
                             "Globed room/session handoff is the next integration step.");
@@ -747,6 +750,7 @@ namespace Versus {
                     auto state = data["state"].asString().unwrapOr("ready-check");
                     m_queueState = state;
                     if (state == "ready") {
+                        m_matchReady = true;
                         showInfo("GLOBAL MATCHMAKING", "MATCH FOUND", "BOTH PLAYERS READY",
                             "The global service paired you and both players accepted.",
                             "Globed room/session handoff is the next integration step.");
@@ -768,6 +772,7 @@ namespace Versus {
             auto ticket = m_queueTicket;
             m_queueTicket.clear();
             m_queueState.clear();
+            m_matchReady = false;
             m_queuePollTimer = 0.f;
             if (!endpoint.empty()) {
                 auto req = web::WebRequest();
