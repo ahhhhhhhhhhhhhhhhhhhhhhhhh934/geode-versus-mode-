@@ -32,6 +32,23 @@ namespace Versus {
         return globedApiAvailable() && globed::api::room::isInRoom();
     }
 
+
+    // Globed 2.3.0 adds the session warp API. Keep this version check at
+    // the integration boundary so older stable Globed builds never receive
+    // a call to an unavailable function.
+    static bool globedSessionHandoffAvailable() {
+        return globedApiAvailable() && globed::api::isAtLeast("v2.3.0");
+    }
+
+    static bool warpToGlobedSession(globed::SessionId const& session) {
+        if (!globedSessionHandoffAvailable()) {
+            log::warn("Versus: Globed 2.3.0 or newer is required for session handoff.");
+            return false;
+        }
+        globed::api::game::warpToSession(session);
+        return true;
+    }
+
     static uint32_t globedRoomId() {
         return globedApiAvailable() && globedInRoom()
             ? globed::api::room::getId() : 0;
@@ -217,7 +234,7 @@ namespace Versus {
                     log::warn("Versus: Globed loaded but its Soft Link API table could not be queried.");
                     showInfo("ONLINE VERSUS", "GLOBED INITIALIZATION", "GLOBED API UNAVAILABLE",
                         "Globed is loaded, but its Soft Link API could not be called.",
-                        "Check that Globed v2.2.2 is installed and enabled, then send the new log if this persists.");
+                        "Check that Globed 2.3.0 beta or newer is installed and enabled, then send the new log if this persists.");
                 }
             }
         }
@@ -314,7 +331,7 @@ namespace Versus {
             menu->addChild(button("EXIT", menu_selector(LobbyLayer::onClose),
                 {w * 0.50f, 42.f}, "GJ_button_01.png", 0.45f));
             m_page->addChild(menu, 5);
-            label("VERSUS MODE  •  v0.6.7", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  GLOBED 2.3.0+", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void showPlaza() {
