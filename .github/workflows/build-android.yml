@@ -77,13 +77,15 @@ jobs:
 
           # A tag-triggered build must package the tagged source, not the
           # default-branch commit used to advance the next development version.
+          RELEASE_TARGET="$BUMP_COMMIT"
           if [[ "$REF_TYPE" == "tag" ]]; then
             git checkout --detach "$GITHUB_SHA"
             NEXT="$GITHUB_REF_NAME"
+            RELEASE_TARGET="$GITHUB_SHA"
           fi
 
           echo "version=$NEXT" >> "$GITHUB_OUTPUT"
-          echo "commit=$BUMP_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "commit=$RELEASE_TARGET" >> "$GITHUB_OUTPUT"
           echo "Bumped release version to $NEXT"
 
       - name: Validate release version
@@ -124,17 +126,8 @@ jobs:
     needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
-      - name: Explain why release publishing is not running
-        if: github.event_name == 'pull_request' || github.ref_type == 'tag' || needs.build-android64.result != 'success'
-        shell: bash
-        run: |
-          echo "Release publishing job ran, but publishing is disabled for this event or build result."
-          echo "Event: $GITHUB_EVENT_NAME"
-          echo "Ref type: $GITHUB_REF_TYPE"
-          echo "Android build result: ${{ needs.build-android64.result }}"
-
       - name: Validate bumped release version
-        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
+        if: needs.build-android64.result == 'success'
         id: version
         shell: bash
         env:
