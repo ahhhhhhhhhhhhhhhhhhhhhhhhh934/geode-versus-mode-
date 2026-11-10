@@ -38,14 +38,14 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           CURRENT="$(jq -r '.version' mod.json)"
-          if [[ ! "$CURRENT" =~ ^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$ ]]; then
+          if [[ ! "$CURRENT" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "::error::Invalid mod.json version: $CURRENT"
             exit 1
           fi
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH="${BASH_REMATCH[3]}"
-          CMAKE_CURRENT="$(sed -nE 's/^project\\(VersusMode VERSION ([0-9]+\\.[0-9]+\\.[0-9]+)\\).*/\\1/p' CMakeLists.txt)"
+          CMAKE_CURRENT="$(sed -nE 's/^project\\(VersusMode VERSION ([0-9]+\.[0-9]+\.[0-9]+)\\).*/\\1/p' CMakeLists.txt)"
           if [[ "$CMAKE_CURRENT" != "$MAJOR.$MINOR.$PATCH" ]]; then
             echo "::error::Version mismatch: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
             exit 1
@@ -64,7 +64,7 @@ jobs:
             NEXT="v${MAJOR}.${MINOR}.${PATCH}"
             jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
             mv mod.json.tmp mod.json
-            sed -i -E "s/^(project\\(VersusMode VERSION )[0-9]+\\.[0-9]+\\.[0-9]+(\\).*)$/\\1${MAJOR}.${MINOR}.${PATCH}\\2/" CMakeLists.txt
+            sed -i -E "s/^(project\\(VersusMode VERSION )[0-9]+\.[0-9]+\.[0-9]+(\\).*)$/\\1${MAJOR}.${MINOR}.${PATCH}\\2/" CMakeLists.txt
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add mod.json CMakeLists.txt
@@ -110,7 +110,7 @@ jobs:
 
   publish-release:
     # Never publish unless the Android package build completed successfully.
-    if: needs.build-android64.result == 'success'
+    if: needs.build-android64.result == 'success' && github.event_name != 'pull_request'
     needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
