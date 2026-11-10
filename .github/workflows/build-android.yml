@@ -120,8 +120,7 @@ jobs:
           retention-days: 90
 
   publish-release:
-    # Always create a visible result for every workflow event. Actual release
-    # publishing is limited to successful non-PR, non-tag builds.
+    # Every successful workflow event creates/updates a versioned GitHub release.
     if: always()
     needs: [build-android64]
     runs-on: ubuntu-latest
@@ -140,14 +139,14 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download Android package
-        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
+        if: needs.build-android64.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Versus-Mode-Android64
           path: release-assets/android
 
       - name: Publish verified Android release
-        if: github.event_name != 'pull_request' && github.ref_type != 'tag' && needs.build-android64.result == 'success'
+        if: needs.build-android64.result == 'success'
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
