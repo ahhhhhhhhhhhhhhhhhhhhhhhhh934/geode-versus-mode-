@@ -49,6 +49,25 @@ namespace Versus {
         return true;
     }
 
+    // Build the Globed session for the current match. `makeSessionId` uses the
+    // connected room and level to create a valid SessionId for `warpToSession`.
+    static bool enterGlobedSessionForCurrentMatch(int levelId) {
+        if (!globedApiAvailable()) {
+            log::warn("Versus: Globed soft-link API unavailable; cannot enter the session.");
+            return false;
+        }
+        if (!globedInRoom()) {
+            log::warn("Versus: Not in a Globed room; cannot enter the session.");
+            return false;
+        }
+        auto session = globed::api::room::makeSessionId(levelId);
+        if (session == globed::SessionId{}) {
+            log::warn("Versus: Globed did not return a session for level {}.", levelId);
+            return false;
+        }
+        return warpToGlobedSession(session);
+    }
+
     static uint32_t globedRoomId() {
         return globedApiAvailable() && globedInRoom()
             ? globed::api::room::getId() : 0;
@@ -176,6 +195,9 @@ namespace Versus {
         float m_queuePollTimer = 0.f;
         bool m_queueRequestPending = false;
         bool m_matchReady = false;
+        std::string m_matchGlobedRoomId;
+        std::string m_matchGlobedPasscode;
+        int m_matchGlobedLevelId = 0;
 
         float m_globedWait = 0.f;
         float m_loadingPulse = 0.f;
@@ -490,7 +512,7 @@ namespace Versus {
             } else {
                 label("Join or create a room using Globed's own room menu.", 0.27f,
                     {w * 0.50f, mid}, {220,230,245});
-                label("Versus room creation and matchmaking are not implemented yet.", 0.23f,
+                label("Versus matchmaking will hand off into this Globed room.", 0.23f,
                     {w * 0.50f, mid - h * 0.055f}, {170,195,230});
             }
 
@@ -700,6 +722,9 @@ namespace Versus {
                         return;
                     }
                     m_queueState = state;
+                    m_matchGlobedRoomId = data["globedRoomId"].asString().unwrapOr("");
+                    m_matchGlobedPasscode = data["globedPasscode"].asString().unwrapOr("");
+                    m_matchGlobedLevelId = data["globedLevelId"].asInt().map([](std::intmax_t v){ return static_cast<int>(v); }).unwrapOr(0);
                     m_queuePollTimer = 2.f;
                     if (state == "matched") {
                         confirmGlobalMatch();
@@ -741,10 +766,7 @@ namespace Versus {
                     } else if (state == "ready") {
                         m_queueState = state;
                         m_matchReady = true;
-                        showInfo("GLOBAL MATCHMAKING", "MATCH FOUND", "BOTH PLAYERS READY",
-                            "The global service paired you and both players accepted.",
-                            "Globed room/session handoff is the next integration step.");
-                        m_queuePollTimer = 99999.f;
+                        startGlobedSessionForMatch();
                     } else if (state == "cancelled" || state == "not_found") {
                         m_queueTicket.clear();
                         showInfo("GLOBAL MATCHMAKING", "MATCH CANCELLED", "QUEUE CLOSED",
@@ -775,10 +797,10 @@ namespace Versus {
                     m_queueState = state;
                     if (state == "ready") {
                         m_matchReady = true;
-                        showInfo("GLOBAL MATCHMAKING", "MATCH FOUND", "BOTH PLAYERS READY",
-                            "The global service paired you and both players accepted.",
-                            "Globed room/session handoff is the next integration step.");
-                        m_queuePollTimer = 99999.f;
+                        m_matchGlobedRoomId = data["globedRoomId"].asString().unwrapOr(m_matchGlobedRoomId);
+                        m_matchGlobedPasscode = data["globedPasscode"].asString().unwrapOr(m_matchGlobedPasscode);
+                        m_matchGlobedLevelId = data["globedLevelId"].asInt().map([this](std::intmax_t v){ return static_cast<int>(v); }).unwrapOr(m_matchGlobedLevelId);
+                        startGlobedSessionForMatch();
                     } else {
                         showQueueStatus("MATCH FOUND",
                             "Waiting for the other player to accept...", m_queueMode.c_str());
@@ -813,6 +835,34 @@ namespace Versus {
         void onQueueDual(CCObject*) { queueForMode("dual"); }
         void onQueuePlatformer(CCObject*) { queueForMode("platformer"); }
         void onCancelQueue(CCObject*) { leaveGlobalQueue(); }
+
+        // Once Supabase reports that both players accepted, move them into the
+        // real Globed room and session. `warpToSession` handles the join.
+        void startGlobedSessionForMatch() {
+            m_queuePollTimer = 99999.f;
+            if (!globedApiAvailable() || !globedConnected()) {
+                showInfo("GLOBAL MATCHMAKING", "MATCH READY", "GLOBED DISCONNECTED",
+                    "The match was accepted, but the Globed connection dropped.",
+                    "Reconnect to Globed and rejoin the queue.");
+                return;
+            }
+            if (!globedInRoom()) {
+                showInfo("GLOBAL MATCHMAKING", "MATCH READY", "NO GLOBED ROOM",
+                    "The match was accepted, but you are not inside a Globed room.",
+                    "Join a Globed room with the passcode before retrying the match.");
+                return;
+            }
+            auto entered = enterGlobedSessionForCurrentMatch(m_matchGlobedLevelId);
+            if (entered) {
+                showInfo("GLOBAL MATCHMAKING", "MATCH STARTED", "GLOBED SESSION ACTIVE",
+                    "Both players accepted and the shared Globed session is now active.",
+                    "Gameplay networking is provided by Globed.");
+            } else {
+                showInfo("GLOBAL MATCHMAKING", "MATCH READY", "SESSION FAILED",
+                    "The Globed session handoff failed. Check the Geode log for details.",
+                    "The queue ticket is preserved so the match can be retried.");
+            }
+        }
 
         void onOnline(CCObject*) {
             if (!globedInstalled() || !globedEnabled() || !globedLoaded()) {

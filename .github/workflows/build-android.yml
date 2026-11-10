@@ -20,6 +20,7 @@ jobs:
     outputs:
       version: ${{ steps.bump.outputs.version }}
       commit: ${{ steps.bump.outputs.commit }}
+      release: ${{ steps.bump.outputs.release }}
     steps:
       - name: Check out source branch
         uses: actions/checkout@v4
@@ -45,7 +46,7 @@ jobs:
 
           VERSION_PARTS="${CURRENT#v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_PARTS"
-          CMAKE_CURRENT="$(awk '/^project/ { for (i=1;i<=NF;i++) if ($i=="VERSION") {print $(i+1); exit}}' CMakeLists.txt)"
+          CMAKE_CURRENT="$(awk '/^project[(]/ { for (i=1;i<=NF;i++) if ($i=="VERSION") { sub(/\)/,"",$(i+1)); print $(i+1); exit}}' CMakeLists.txt)"
           if [[ "$CMAKE_CURRENT" != "$MAJOR.$MINOR.$PATCH" ]]; then
             echo "::error::Version mismatch: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
             exit 1
@@ -53,15 +54,21 @@ jobs:
 
           # PR and feature-branch runs validate/build only. Releases are made
           # only from the default branch, tags, or an explicit manual run.
+          #
+          # Feature-branch and PR builds must never create or publish a release,
+          # but they must still run the Android build and upload the artifact.
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             NEXT="$CURRENT"
             RELEASE_TARGET="$GITHUB_SHA"
+            RELEASE="false"
           elif [[ "$REF_TYPE" == "tag" ]]; then
             NEXT="$GITHUB_REF_NAME"
             RELEASE_TARGET="$GITHUB_SHA"
+            RELEASE="true"
           elif [[ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]]; then
             NEXT="$CURRENT"
             RELEASE_TARGET="$GITHUB_SHA"
+            RELEASE="false"
           else
             PATCH=$((PATCH + 1))
             NEXT="v${MAJOR}.${MINOR}.${PATCH}"
@@ -74,10 +81,12 @@ jobs:
             git commit -m "chore: bump release version to $NEXT [skip ci]"
             RELEASE_TARGET="$(git rev-parse HEAD)"
             git push origin "HEAD:$GITHUB_REF_NAME"
+            RELEASE="true"
           fi
 
           echo "version=$NEXT" >> "$GITHUB_OUTPUT"
           echo "commit=$RELEASE_TARGET" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
           echo "Prepared version $NEXT"
 
       - name: Validate release version
@@ -112,33 +121,31 @@ jobs:
           retention-days: 90
 
   publish-release:
-    # Never publish unless the Android package build completed successfully.
-    if: needs.build-android64.result == 'success' && github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch)
+    # Never publish unless the Android package build completed successfully,
+    # the release gate was explicitly requested, and this is not a PR run.
+    if: needs.build-android64.result == 'success' && needs.build-android64.outputs.release == 'true' && github.event_name != 'pull_request' 
     needs: [build-android64]
     runs-on: ubuntu-latest
     steps:
       - name: Validate bumped release version
-        if: needs.build-android64.result == 'success'
         id: version
         shell: bash
         env:
           VERSION: ${{ needs.build-android64.outputs.version }}
         run: |
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "::error::Invalid release version: $VERSION"
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download Android package
-        if: needs.build-android64.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Versus-Mode-Android64
           path: release-assets/android
 
       - name: Publish verified Android release
-        if: needs.build-android64.result == 'success'
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}

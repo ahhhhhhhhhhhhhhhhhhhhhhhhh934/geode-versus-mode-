@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VersusMode VERSION 0.6.20)
+project(VersusMode VERSION 0.6.13)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
@@ -15,7 +15,11 @@ add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 # Globed is not published in the Geode index yet, so declare it as an
 # externally supplied runtime dependency. We still fetch its public headers
 # from the upstream source repository for compilation.
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0)
+#
+# The exact version here is verified by the runtime check; it must satisfy the
+# comparison the mod publishes in mod.json. Use the exact Globed version
+# the mod was built against, not a comparator.
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0-beta.1)
 
 include(FetchContent)
 FetchContent_Declare(
