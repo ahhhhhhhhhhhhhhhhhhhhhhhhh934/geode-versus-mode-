@@ -286,7 +286,7 @@ namespace Versus {
                 {w * 0.075f, h - 76.f}, "GJ_button_01.png", 0.38f));
             m_page->addChild(dockMenu, 5);
 
-            label("VERSUS MODE  •  v0.4.12", 0.20f, {w/2.f, 12.f}, {125,155,195});
+            label("VERSUS MODE  •  v0.6.7", 0.20f, {w/2.f, 12.f}, {125,155,195});
         }
 
         void onHome(CCObject*) { showHome(); }
