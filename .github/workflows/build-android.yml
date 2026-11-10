@@ -120,7 +120,7 @@ jobs:
           retention-days: 90
 
   publish-release:
-    # Every successful workflow event creates/updates a versioned GitHub release.
+    # Every successful workflow event, including pull_request, publishes its Android package.
     if: always()
     needs: [build-android64]
     runs-on: ubuntu-latest
