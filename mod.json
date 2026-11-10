@@ -5,7 +5,7 @@
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v0.6.11",
+  "version": "v0.6.12",
   "developer": "Versus Mode Team",
   "description": "Versus Mode requires Globed for online multiplayer and uses Globed's built-in voice features where supported.",
   "tags": [
