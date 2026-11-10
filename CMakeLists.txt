@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(VersusMode VERSION 0.6.14)
+project(VersusMode VERSION 0.6.15)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
