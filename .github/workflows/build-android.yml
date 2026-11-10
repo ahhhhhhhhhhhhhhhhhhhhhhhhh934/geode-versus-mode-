@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
+      commit: ${{ steps.bump.outputs.commit }}
     steps:
       - name: Check out source branch
         uses: actions/checkout@v4
@@ -64,6 +65,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add mod.json CMakeLists.txt
           git commit -m "chore: bump release version to $NEXT [skip ci]"
+          BUMP_COMMIT="$(git rev-parse HEAD)"
           if [[ "$REF_TYPE" == "tag" ]]; then
             BUMP_BRANCH="$DEFAULT_BRANCH"
           elif [[ "$EVENT_NAME" == "pull_request" ]]; then
@@ -81,6 +83,7 @@ jobs:
           fi
 
           echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "commit=$BUMP_COMMIT" >> "$GITHUB_OUTPUT"
           echo "Bumped release version to $NEXT"
 
       - name: Validate release version
@@ -156,7 +159,7 @@ jobs:
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
           tag_name: ${{ steps.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ needs.build-android64.outputs.commit }}
           generate_release_notes: true
           files: release-assets/**/*.geode
           fail_on_unmatched_files: true
