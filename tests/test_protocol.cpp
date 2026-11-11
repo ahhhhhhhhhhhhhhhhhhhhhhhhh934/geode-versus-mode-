@@ -26,13 +26,15 @@ static void testHeaderShape() {
 
 static void testLobbyRoundtrip() {
     for (auto action : {Action::Join, Action::Ready, Action::Heartbeat}) {
-        auto p = encodeLobby(123456789, action, 6, true);
+        auto p = encodeLobby(123456789, action, 6, true, 1, 7);
         auto d = decode(p);
         CHECK(d.has_value());
         CHECK(d->action == action);
         CHECK(d->roomId == 123456789);
         CHECK(d->mode == 6);
         CHECK(d->ready);
+        CHECK(d->queueType == 1);
+        CHECK(d->difficultyTier == 7);
     }
 }
 
@@ -139,7 +141,7 @@ static void testRejectsGarbage() {
 
 static void testRoomIdZero() {
     // A zero room id can never be a valid lobby scope.
-    auto p = encodeLobby(0, Action::Join, 1, false);
+    auto p = encodeLobby(0, Action::Join, 1, false, 0, 0);
     auto d = decode(p);
     CHECK(d.has_value());
     CHECK(d->roomId == 0); // codec passes it through; LobbyClient must reject it

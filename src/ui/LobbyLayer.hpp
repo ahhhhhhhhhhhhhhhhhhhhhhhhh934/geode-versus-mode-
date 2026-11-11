@@ -10,7 +10,7 @@
 using namespace geode::prelude;
 
 namespace Versus {
-    enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info, Lobby, MatchSetup, Results };
+    enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info, Lobby, MatchSetup, Matchmaking, Results };
     inline Screen s_screen = Screen::Home;
 
     // The single Versus hub scene. Every page is rendered into a mutable
@@ -37,6 +37,7 @@ namespace Versus {
         void showRoomLobby();
         void showModeSelect();
         void showMatchSetup();
+        void showMatchmaking();
         void showResults();
         void showInfo(char const* title, char const* subtitle, char const* status,
             char const* detail, char const* extra);
@@ -56,6 +57,7 @@ namespace Versus {
         void onOpenModeSelect(CCObject*);
         void onPickMode(CCObject*);
         void onOpenMatchSetup(CCObject*);
+        void onOpenMatchmaking(CCObject*);
         void onUsePinnedLevel(CCObject*);
         void onLaunchMatch(CCObject*);
         void onVoteRematch(CCObject*);
@@ -63,6 +65,10 @@ namespace Versus {
         void onLeaveLobby(CCObject*);
         void onHostCancelMatch(CCObject*);
         void onShareCode(CCObject*);
+        void onQueueCasual(CCObject*);
+        void onQueueRanked(CCObject*);
+        void onTierPrev(CCObject*);
+        void onTierNext(CCObject*);
         void onLocal(CCObject*);
         void onOnline(CCObject*);
         void onBack(CCObject*);
