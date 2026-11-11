@@ -28,6 +28,27 @@ namespace Versus {
         void tick(float dt) {
             // Drive the lobby transport from any scene, including in-level.
             VersusLobby::update(dt, globedInRoom() ? globedRoomId() : 0);
+
+            // Report local match progress once per second while playing a
+            // Versus match level.
+            if (VersusLobby::phase() == VersusLobby::MatchPhase::InGame &&
+                VersusLobby::matchId() != 0) {
+                m_progressTimer += dt;
+                if (m_progressTimer >= 1.f) {
+                    m_progressTimer = 0.f;
+                    auto* playLayer = PlayLayer::get();
+                    if (playLayer && playLayer->m_level &&
+                        playLayer->m_level->m_levelID == VersusLobby::levelId()) {
+                        VersusLobby::reportLocalProgress(static_cast<uint16_t>(
+                            playLayer->m_percentage * 10));
+                    }
+                }
+            } else {
+                m_progressTimer = 0.f;
+            }
         }
+
+    private:
+        float m_progressTimer = 0.f;
     };
 }

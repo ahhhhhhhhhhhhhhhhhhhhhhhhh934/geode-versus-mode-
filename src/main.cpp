@@ -1,6 +1,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include "ui/LobbyLayer.hpp"
+#include "play/MatchHooks.hpp"
 
 using namespace geode::prelude;
 
