@@ -1,15 +1,13 @@
 {
   "geode": "5.11.2",
   "gd": {
-    "android": "2.2081",
-    "win": "2.2081",
-    "ios": "2.2081"
+    "android": "2.2081"
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v0.6.7",
+  "version": "v1.0.0",
   "developer": "Versus Mode Team",
-  "description": "Versus Mode requires Globed for online multiplayer and uses Globed's built-in voice features where supported.",
+  "description": "Geometry Dash Versus competition hub. Requires Globed 2.3.0 beta or newer.",
   "tags": [
     "gameplay",
     "online",
@@ -17,8 +15,22 @@
   ],
   "dependencies": {
     "dankmeme.globed2": {
-      "version": ">=2.2.2",
+      "version": ">=2.3.0-beta.1",
       "required": true
+    }
+  },
+  "settings": {
+    "matchmaking-url": {
+      "type": "string",
+      "name": "Supabase Matchmaking Function URL",
+      "description": "Base URL ending in /functions/v1/versus-matchmaking. Never enter a service-role key here.",
+      "default": ""
+    },
+    "matchmaking-anon-key": {
+      "type": "string",
+      "name": "Supabase Project Anon Key",
+      "description": "Public anon/publishable key for your Supabase project. Do not use the service-role key.",
+      "default": ""
     }
   }
 }

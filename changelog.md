@@ -1,15 +1,13 @@
-## v0.4.12
-- Replace custom Globed event dispatch with Globed's documented Soft Link API wrappers.
-- Declare Globed as an optional dependency and retry API lookup after it loads.
-
 # Changelog
 
-## v0.3.0
-- Align metadata with Geode SDK 5.8.2 and Geometry Dash 2.2081.
-- Add Android64 GitHub Actions build workflow.
-- Clarify implemented prototype UI versus planned multiplayer features.
+## v1.0.0 — First major release candidate
+- Rework the Versus lobby with a Geometry Dash Level Complete-inspired gold-trimmed presentation.
+- Add a dedicated Private Versus screen with live Globed connection and room detection.
+- Add refresh and room-status navigation to the private room flow.
+- Prepare the project metadata and documentation for the 1.0 launch line.
+- Keep incomplete online matchmaking and session features clearly marked rather than presenting placeholders as working gameplay.
 
-## v0.3.1
-- Disable background menu items while the Versus lobby is open and restore them when it closes.
-- Put lobby buttons inside a touch-enabled CCMenu.
-- Use Geometry Dash's native Versus button artwork where available, with a fallback.
+## Previous development
+- Globed 2.3.0 beta Soft Link API integration and session handoff groundwork.
+- Lobby, Plaza, ranks, profile, room status, voice information, and mode selection prototypes.
+- Android64 CI build and release workflow.
