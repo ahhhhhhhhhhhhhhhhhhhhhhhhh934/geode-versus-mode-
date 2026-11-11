@@ -20,6 +20,7 @@ Versus Mode should feel like a complete Geometry Dash competition hub: fast to e
 ## Game modes
 
 ### Core competitive modes
+- [ ] Rank-matched level challenge — select randomized Geometry Dash levels from the player's current rank difficulty: Auto, Easy, Normal, Hard, Harder, Insane, and matching Demon tiers through Extreme Demon. Difficulty rises with rank. No wagers, paid entries, lost rank points, or stakes; progression is based on verified completion only. Requires a curated/searchable level pool and validation of each level's actual difficulty.
 - [ ] 1v1 Race — players race through the same level; record finish time and completion state.
 - [ ] Survival — stay alive as long as possible under a clearly defined shared ruleset.
 - [ ] Dual Challenge — coordinated or competing dual-control challenges, with the exact variant selected per playlist.
@@ -33,6 +34,13 @@ Versus Mode should feel like a complete Geometry Dash competition hub: fast to e
 - [ ] Match timer, pause/disconnect policy, rematch, and return-to-lobby flow.
 - [ ] Results screen with verified outcome, personal best, and match history.
 - [ ] Spectator support only after match state and privacy rules are stable.
+
+### Rank-matched level challenge rules
+- Current rank determines the level difficulty pool; do not mix easier/harder tiers unless the player explicitly selects a separate unranked practice option.
+- Random selection must avoid recently played levels and support level length / mode filters.
+- A level must be verified as the intended difficulty before it can award progression.
+- The challenge is not gambling: no real-money purchases, wagers, betting, entry fees, or loss of rank points/items.
+- [ ] Build a curated level catalog and a real level picker; the current UI is only a preview until this exists.
 
 ## Player progression
 
