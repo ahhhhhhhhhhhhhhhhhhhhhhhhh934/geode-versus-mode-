@@ -61,6 +61,7 @@ namespace Versus {
         void onVoteRematch(CCObject*);
         void onToggleReady(CCObject*);
         void onLeaveLobby(CCObject*);
+        void onHostCancelMatch(CCObject*);
         void onLocal(CCObject*);
         void onOnline(CCObject*);
         void onBack(CCObject*);

@@ -70,6 +70,7 @@ static void testCancelRematchRoundtrip() {
     CHECK(d.has_value());
     CHECK(d->action == Action::Cancel);
     CHECK(d->matchId == 111);
+    CHECK(d->reason == static_cast<uint8_t>(CancelReason::PlayerLeft));
 
     auto r = encodeRematch(9, 111, 1);
     auto rd = decode(r);

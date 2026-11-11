@@ -14,6 +14,7 @@
 #include "GlobedClient.hpp"
 
 #include <cmath>
+#include <deque>
 #include <unordered_map>
 #include <vector>
 
@@ -54,6 +55,7 @@ namespace VersusLobby {
         uint32_t deaths = 0;
         bool finished = false;
         bool eliminated = false;
+        bool disconnected = false;
         uint32_t finishTimeMs = 0;
     };
 
@@ -87,6 +89,31 @@ namespace VersusLobby {
     inline uint32_t s_localDeaths = 0;
     inline bool s_localFinished = false;
     inline bool s_localEliminated = false;
+
+    // ---- match alerts (toasts shown by the UI) -------------------------------
+    struct Alert {
+        std::string text;
+        float age = 0.f;
+    };
+    inline std::deque<Alert> s_alerts;
+    inline uint8_t s_lastCancelReason = 0;
+    // Host migration: the Globed room owner at launch, plus a grace period
+    // before a migrated host starts resolving the match.
+    inline int s_hostAtLaunch = 0;
+    inline float s_hostGrace = 0.f;
+
+    inline void pushAlert(std::string const& text) {
+        s_alerts.push_back({text, 0.f});
+        while (s_alerts.size() > 6) s_alerts.pop_front();
+    }
+
+    inline std::vector<Alert> alerts() {
+        std::vector<Alert> live;
+        for (auto const& a : s_alerts) {
+            if (a.age < 8.f) live.push_back(a);
+        }
+        return live;
+    }
     inline float s_matchStartClock = 0.f;
     inline float s_progressTimer = 0.f;
 
@@ -130,6 +157,18 @@ namespace VersusLobby {
 
     inline void leave(); // defined below; join() needs it
 
+    inline char const* cancelReasonText(uint8_t reason) {
+        switch (reason) {
+            case 1: return "host cancelled";
+            case 2: return "player left";
+            case 3: return "disconnect";
+            case 4: return "timeout";
+            case 5: return "room closed";
+            case 6: return "level invalid";
+            default: return "unknown";
+        }
+    }
+
     inline void applyPacket(VersusProto::Decoded const& d, int sender) {
         // Every packet must be scoped to the lobby's room.
         if (d.roomId == 0 || d.roomId != s_roomId || sender <= 0) return;
@@ -169,11 +208,14 @@ namespace VersusLobby {
                 s_phase = MatchPhase::Countdown;
                 s_resultsRecorded = false;
                 s_rematchVotes.clear();
+                s_hostAtLaunch = hostAccountId();
+                s_hostGrace = 0.f;
                 for (auto& [id, p] : s_players) {
                     p.percentX10 = 0;
                     p.deaths = 0;
                     p.finished = false;
                     p.eliminated = false;
+                    p.disconnected = false;
                     p.finishTimeMs = 0;
                 }
                 break;
@@ -186,6 +228,8 @@ namespace VersusLobby {
             }
             case VersusProto::Action::Cancel: {
                 if (sender != hostAccountId() && sender != localAccountId()) return;
+                s_lastCancelReason = d.reason;
+                pushAlert(fmt::format("MATCH CANCELLED  ({})", cancelReasonText(d.reason)));
                 s_phase = MatchPhase::None;
                 s_countdown = 0.f;
                 break;
@@ -307,6 +351,7 @@ namespace VersusLobby {
             r.accountId = p.accountId;
             r.finished = p.finished;
             r.eliminated = p.eliminated;
+            r.disconnected = p.disconnected;
             r.deaths = p.deaths;
             r.percentX10 = p.percentX10;
             r.finishTimeMs = p.finishTimeMs;
@@ -517,7 +562,7 @@ namespace VersusLobby {
             // A match that cannot resolve is ended by timeout (10 minutes).
             float elapsed = s_clock - s_matchStartClock;
             bool timeout = elapsed > 600.f;
-            if (isHost()) {
+            if (isHost() && s_hostGrace <= 0.f) {
                 auto snapshot = buildSnapshot();
                 bool resolved = VersusMatch::computeVerdict(snapshot).recordable;
                 if (!resolved && timeout) {
@@ -557,11 +602,49 @@ namespace VersusLobby {
             }
         }
 
-        // Drop players whose heartbeats expired.
+        // ---- host migration ------------------------------------------------
+        // If the room owner changes mid-match, the new owner takes over
+        // match resolution after a short grace period, so it does not race
+        // the old host's final packets. Verdicts are deterministic from the
+        // shared packet stream, so any client computes the same result.
+        if ((s_phase == MatchPhase::Countdown || s_phase == MatchPhase::InGame) &&
+            s_hostAtLaunch != 0) {
+            int currentHost = hostAccountId();
+            if (currentHost != 0 && currentHost != s_hostAtLaunch) {
+                s_hostAtLaunch = currentHost;
+                s_hostGrace = 3.f;
+                if (isHost()) {
+                    pushAlert("HOST LEFT — YOU ARE NOW HOST");
+                } else {
+                    pushAlert(fmt::format("HOST MIGRATED TO PLAYER {}", currentHost));
+                }
+            }
+        }
+        if (s_hostGrace > 0.f) s_hostGrace -= dt;
+
+        // Age out alerts.
+        for (auto& a : s_alerts) a.age += dt;
+        while (!s_alerts.empty() && s_alerts.front().age > 8.f) s_alerts.pop_front();
+
+        // Drop players whose heartbeats expired. During an active match a
+        // disconnected player stays in the snapshot (flagged) so the engine
+        // can judge the match; outside a match they are removed outright.
+        bool matchActive = s_matchId != 0 &&
+            (s_phase == MatchPhase::Countdown || s_phase == MatchPhase::InGame);
         for (auto it = s_players.begin(); it != s_players.end();) {
             if (s_clock - it->second.lastSeen > 15.f) {
-                s_rematchVotes.erase(it->first);
-                it = s_players.erase(it);
+                if (matchActive && !it->second.disconnected) {
+                    it->second.disconnected = true;
+                    pushAlert(fmt::format("PLAYER {} DISCONNECTED", it->first));
+                    ++it;
+                    continue;
+                }
+                if (!matchActive) {
+                    s_rematchVotes.erase(it->first);
+                    it = s_players.erase(it);
+                    continue;
+                }
+                ++it;
             } else {
                 ++it;
             }
@@ -584,6 +667,8 @@ namespace VersusLobby {
         for (auto const& [id, player] : s_players) result.push_back(player);
         return result;
     }
+
+    inline uint8_t lastCancelReason() { return s_lastCancelReason; }
 
     inline size_t playerCount(uint8_t mode) {
         size_t count = 0;
