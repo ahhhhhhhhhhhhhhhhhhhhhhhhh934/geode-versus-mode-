@@ -6,7 +6,11 @@
 #include <globed/core/net/MessageListener.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
 #include "../core/GameModes.hpp"
+#include "../core/MatchLogic.hpp"
 #include "../core/Protocol.hpp"
+#include "../core/StatsStore.hpp"
+
+#include <ctime>
 #include "GlobedClient.hpp"
 
 #include <cmath>
@@ -209,6 +213,11 @@ namespace VersusLobby {
                 s_phase = MatchPhase::Results;
                 s_lastVerdict = d.verdict;
                 s_lastWinner = d.winner;
+                // Every client records the match exactly once, from the
+                // host-computed verdict carried in the packet stream.
+                if (!s_resultsRecorded && s_matchId != 0) {
+                    recordMatchOutcome();
+                }
                 break;
             }
             case VersusProto::Action::Rematch: {
@@ -280,6 +289,74 @@ namespace VersusLobby {
         s_phase = MatchPhase::None;
         s_countdown = 0.f;
         s_resultsRecorded = false;
+    }
+
+    // ---- verdict recording ------------------------------------------------------
+
+    // Build the pure-engine snapshot from the live packet state.
+    inline VersusMatch::MatchSnapshot buildSnapshot() {
+        VersusMatch::MatchSnapshot snapshot;
+        snapshot.mode = s_mode;
+        snapshot.levelId = s_levelId;
+        snapshot.localAccountId = localAccountId();
+        int self = localAccountId();
+        bool selfPresent = false;
+        for (auto const& [id, p] : s_players) {
+            VersusMatch::PlayerResult r;
+            r.accountId = p.accountId;
+            r.finished = p.finished;
+            r.eliminated = p.eliminated;
+            r.deaths = p.deaths;
+            r.percentX10 = p.percentX10;
+            r.finishTimeMs = p.finishTimeMs;
+            snapshot.players.push_back(r);
+            if (p.accountId == self) selfPresent = true;
+        }
+        if (!selfPresent) {
+            // The local player is always part of the snapshot.
+            VersusMatch::PlayerResult r;
+            r.accountId = self;
+            r.finished = s_localFinished;
+            r.eliminated = s_localEliminated;
+            r.deaths = s_localDeaths;
+            r.finishTimeMs = 0; // the engine only compares opponents' times
+            snapshot.players.push_back(r);
+        }
+        return snapshot;
+    }
+
+    // Record the match locally: verdict, rank delta and history entry.
+    // Runs exactly once per match on every client.
+    inline void recordMatchOutcome() {
+        if (s_resultsRecorded || s_matchId == 0) return;
+        s_resultsRecorded = true;
+
+        auto* info = VersusModes::find(s_mode);
+        if (!info || !info->ranked) return; // warm-up records nothing
+
+        auto snapshot = buildSnapshot();
+        auto verdict = VersusMatch::computeVerdict(snapshot);
+        if (!verdict.recordable) return;
+
+        // Apply the rank delta locally (floored at zero by the engine).
+        VersusStats::applyRankDelta(verdict.rankDelta);
+
+        // History entry: opponent is the first other player in the snapshot.
+        int opponentId = 0;
+        for (auto const& p : snapshot.players) {
+            if (p.accountId != localAccountId()) { opponentId = p.accountId; break; }
+        }
+        VersusMatch::MatchRecord record;
+        record.timestamp = static_cast<int64_t>(std::time(nullptr));
+        record.mode = s_mode;
+        record.levelId = s_levelId;
+        record.opponentId = opponentId;
+        record.outcome = verdict.localOutcome;
+        record.rankDelta = verdict.rankDelta;
+        record.deaths = s_localDeaths;
+        record.percentX10 = static_cast<uint16_t>(PlayLayer::get()
+            ? PlayLayer::get()->m_percentage * 10 : 0);
+        VersusStats::appendRecord(record);
     }
 
     // ---- local play tracking -------------------------------------------------
@@ -431,6 +508,51 @@ namespace VersusLobby {
                 if (Versus::globedApiAvailable() && Versus::globedInRoom() && s_levelId > 0) {
                     globed::api::game::warpToSession(s_levelId);
                 }
+            }
+        }
+
+        // ---- match resolution ---------------------------------------------------
+        if (s_phase == MatchPhase::InGame) {
+            // A match that cannot resolve is ended by timeout (10 minutes).
+            float elapsed = s_clock - s_matchStartClock;
+            bool timeout = elapsed > 600.f;
+            if (isHost()) {
+                auto snapshot = buildSnapshot();
+                bool resolved = VersusMatch::computeVerdict(snapshot).recordable;
+                if (!resolved && timeout) {
+                    // End the match with whatever data exists.
+                    s_phase = MatchPhase::Results;
+                    sendResults(VersusProto::Verdict::Unrecorded, 0);
+                    recordMatchOutcome();
+                } else if (resolved) {
+                    auto verdict = VersusMatch::computeVerdict(snapshot);
+                    s_phase = MatchPhase::Results;
+                    sendResults(static_cast<VersusProto::Verdict>(verdict.localOutcome),
+                        verdict.winner);
+                    recordMatchOutcome();
+                }
+            } else if (timeout) {
+                // Non-host safety: never stay stuck in a dead match. Record
+                // only what the engine can verify from the packet stream
+                // (e.g. a forfeit win if every opponent disconnected).
+                s_phase = MatchPhase::Results;
+                recordMatchOutcome();
+            }
+        }
+
+        // ---- rematch ------------------------------------------------------------
+        if (s_phase == MatchPhase::Results && isHost()) {
+            // When every connected player has voted yes, relaunch the same
+            // level and mode with a fresh match id.
+            bool allYes = !s_players.empty();
+            for (auto const& [id, vote] : s_rematchVotes) {
+                if (!vote) allYes = false;
+            }
+            for (auto const& [id, player] : s_players) {
+                if (!s_rematchVotes.count(id)) allYes = false;
+            }
+            if (allYes && s_levelId > 0) {
+                launchMatch(s_levelId, s_mode, 5);
             }
         }
 

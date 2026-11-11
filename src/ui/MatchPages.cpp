@@ -1,5 +1,6 @@
 #include "LobbyLayer.hpp"
 #include "../core/GameModes.hpp"
+#include "../core/StatsStore.hpp"
 #include <Geode/ui/TextInput.hpp>
 
 // Pages that configure and describe matches: mode selection today, match
@@ -147,6 +148,94 @@ namespace Versus {
         }
         VersusLobby::launchMatch(levelId, VersusLobby::mode(), 5);
         showRoomLobby();
+    }
+
+    void LobbyLayer::showResults() {
+        s_screen = Screen::Results;
+        basePage("MATCH RESULTS", "VERIFIED FROM THE MATCH PACKETS");
+        auto w = m_size.width;
+        auto h = m_size.height;
+
+        auto* info = VersusModes::find(VersusLobby::mode());
+        auto verdict = static_cast<VersusMatch::Outcome>(VersusLobby::s_lastVerdict);
+
+        // Verdict banner.
+        char const* banner = "MATCH OVER";
+        ccColor3B bannerColor = {225, 235, 250};
+        switch (verdict) {
+            case VersusMatch::Outcome::Win:
+                banner = "VICTORY"; bannerColor = {115, 255, 170}; break;
+            case VersusMatch::Outcome::Loss:
+                banner = "DEFEAT"; bannerColor = {255, 130, 130}; break;
+            case VersusMatch::Outcome::Forfeit:
+                banner = "WIN BY FORFEIT"; bannerColor = {255, 210, 110}; break;
+            case VersusMatch::Outcome::Draw:
+                banner = "DRAW"; bannerColor = {255, 220, 120}; break;
+            default:
+                banner = "NOT RECORDED"; break;
+        }
+        VersusUI::addCard(m_page, {w * 0.50f, h * 0.72f}, {w * 0.86f, h * 0.17f}, {18, 42, 91, 255});
+        VersusUI::label(m_page, banner, 0.52f, {w * 0.50f, h * 0.76f}, bannerColor);
+        if (info) {
+            VersusUI::label(m_page, fmt::format("{}  •  LEVEL {}", info->name, VersusLobby::levelId()).c_str(),
+                0.22f, {w * 0.50f, h * 0.685f}, {185, 210, 245});
+        }
+
+        // Verified record summary.
+        VersusUI::addCard(m_page, {w * 0.50f, h * 0.50f}, {w * 0.86f, h * 0.22f}, {18, 42, 91, 255});
+        auto stats = VersusStats::stats();
+        VersusUI::label(m_page, fmt::format("RANK POINTS  {}", VersusStats::rankPoints()).c_str(),
+            0.30f, {w * 0.50f, h * 0.56f}, {145, 220, 255});
+        VersusUI::label(m_page, fmt::format("{} WINS  •  {} LOSSES  •  {}% WIN RATE",
+            stats.wins, stats.losses, VersusStats::winRatePercent(stats)).c_str(),
+            0.22f, {w * 0.50f, h * 0.485f}, {225, 235, 250});
+        VersusUI::label(m_page,
+            "Warm-up matches record nothing. Results are computed from the shared match packets.",
+            0.16f, {w * 0.50f, h * 0.44f}, {170, 200, 235});
+
+        // Live standings from the packet stream.
+        auto players = VersusLobby::players();
+        int self = VersusLobby::localAccountId();
+        float y = h * 0.35f;
+        auto drawLine = [&](std::string const& text, ccColor3B color) {
+            VersusUI::label(m_page, text.c_str(), 0.20f, {w * 0.50f, y}, color);
+            y -= h * 0.04f;
+        };
+        drawLine(fmt::format("YOU  {} DEATHS{}", VersusLobby::s_localDeaths,
+            VersusLobby::s_localFinished ? "  •  FINISHED" : ""), {145, 255, 175});
+        for (auto const& p : players) {
+            if (p.accountId == self) continue;
+            if (p.finished) {
+                drawLine(fmt::format("PLAYER {}  FINISHED  •  {} DEATHS", p.accountId, p.deaths),
+                    {255, 220, 120});
+            } else if (p.eliminated) {
+                drawLine(fmt::format("PLAYER {}  ELIMINATED", p.accountId), {255, 130, 130});
+            } else {
+                drawLine(fmt::format("PLAYER {}  {}%  •  {} DEATHS",
+                    p.accountId, p.percentX10 / 10, p.deaths), {225, 235, 250});
+            }
+        }
+
+        // Controls.
+        auto* menu = CCMenu::create();
+        menu->setPosition({0,0});
+        bool voted = VersusLobby::s_rematchVotes.count(VersusLobby::localAccountId()) &&
+            VersusLobby::s_rematchVotes[VersusLobby::localAccountId()];
+        menu->addChild(VersusUI::button(voted ? "REMATCH VOTED" : "REMATCH",
+            this, menu_selector(LobbyLayer::onVoteRematch),
+            {w * 0.27f, 40.f}, voted ? "GJ_button_04.png" : "GJ_button_02.png", 0.44f));
+        menu->addChild(VersusUI::button("BACK TO LOBBY", this, menu_selector(LobbyLayer::onJoinLobby),
+            {w * 0.73f, 40.f}, "GJ_button_01.png", 0.44f));
+        m_page->addChild(menu, 6);
+        VersusUI::label(m_page, "REMATCH STARTS WHEN EVERY PLAYER VOTES",
+            0.16f, {w * 0.50f, 14.f}, {150, 180, 215});
+    }
+
+    void LobbyLayer::onVoteRematch(CCObject*) {
+        bool voted = VersusLobby::s_rematchVotes.count(VersusLobby::localAccountId()) &&
+            VersusLobby::s_rematchVotes[VersusLobby::localAccountId()];
+        VersusLobby::voteRematch(!voted);
+        showResults();
     }
 
     void LobbyLayer::onOpenModeSelect(CCObject*) {
