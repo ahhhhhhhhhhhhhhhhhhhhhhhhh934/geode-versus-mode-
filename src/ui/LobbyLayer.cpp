@@ -72,6 +72,16 @@ namespace Versus {
         // Drive the lobby transport (heartbeats, timeouts, reconnection)
         // whenever the hub scene is open.
         VersusLobby::update(dt, Versus::globedInRoom() ? Versus::globedRoomId() : 0);
+        // Keep the lobby screen live while it is open.
+        if (s_screen == Screen::Lobby && VersusLobby::joined()) {
+            m_lobbyRefresh += dt;
+            if (m_lobbyRefresh >= 2.f) {
+                m_lobbyRefresh = 0.f;
+                showRoomLobby();
+            }
+        } else {
+            m_lobbyRefresh = 0.f;
+        }
         if (!m_waitingForGlobed) return;
         m_globedWait += dt;
         m_loadingPulse += dt;
