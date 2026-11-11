@@ -4,12 +4,13 @@
 #include <Geode/modify/CreatorLayer.hpp>
 #include "../net/GlobedClient.hpp"
 #include "../net/LobbyClient.hpp"
+#include "../net/SessionDriver.hpp"
 #include "Theme.hpp"
 
 using namespace geode::prelude;
 
 namespace Versus {
-    enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info, Lobby };
+    enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info, Lobby, MatchSetup };
     inline Screen s_screen = Screen::Home;
 
     // The single Versus hub scene. Every page is rendered into a mutable
@@ -35,6 +36,7 @@ namespace Versus {
         void showVoice();
         void showRoomLobby();
         void showModeSelect();
+        void showMatchSetup();
         void showInfo(char const* title, char const* subtitle, char const* status,
             char const* detail, char const* extra);
         void showGlobedLoading();
@@ -52,6 +54,9 @@ namespace Versus {
         void onJoinLobby(CCObject*);
         void onOpenModeSelect(CCObject*);
         void onPickMode(CCObject*);
+        void onOpenMatchSetup(CCObject*);
+        void onUsePinnedLevel(CCObject*);
+        void onLaunchMatch(CCObject*);
         void onToggleReady(CCObject*);
         void onLeaveLobby(CCObject*);
         void onLocal(CCObject*);
@@ -73,6 +78,7 @@ namespace Versus {
 
         CCSize m_size;
         CCLayer* m_page = nullptr;
+        geode::TextInput* m_levelInput = nullptr;
         bool m_waitingForGlobed = false;
         float m_lobbyRefresh = 0.f;
 

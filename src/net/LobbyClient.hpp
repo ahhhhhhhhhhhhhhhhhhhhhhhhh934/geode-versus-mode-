@@ -8,6 +8,7 @@
 #include "../core/Protocol.hpp"
 #include "GlobedClient.hpp"
 
+#include <cmath>
 #include <unordered_map>
 #include <vector>
 
@@ -351,6 +352,27 @@ namespace VersusLobby {
         if (s_heartbeat >= 5.f) {
             s_heartbeat = 0.f;
             sendLobby(VersusProto::Action::Heartbeat);
+        }
+
+        // ---- countdown and level warp ----------------------------------------
+        if (s_phase == MatchPhase::Countdown) {
+            float before = s_countdown;
+            s_countdown -= dt;
+            // The host keeps everyone else's clock aligned.
+            if (isHost()) {
+                int beforeWhole = static_cast<int>(std::ceil(before));
+                if (beforeWhole < 0) beforeWhole = 0;
+                int nowWhole = static_cast<int>(std::ceil(s_countdown < 0.f ? 0.f : s_countdown));
+                if (beforeWhole != nowWhole) broadcastCountdown(static_cast<uint8_t>(nowWhole));
+            }
+            if (s_countdown <= 0.f) {
+                s_countdown = 0.f;
+                s_phase = MatchPhase::InGame;
+                // Enter the level session through Globed's warp API (2.3.0+).
+                if (Versus::globedApiAvailable() && Versus::globedInRoom() && s_levelId > 0) {
+                    globed::api::game::warpToSession(s_levelId);
+                }
+            }
         }
 
         // Drop players whose heartbeats expired.

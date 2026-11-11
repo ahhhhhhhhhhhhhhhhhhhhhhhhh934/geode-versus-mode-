@@ -55,9 +55,11 @@ namespace Versus {
         if (!CCLayer::init()) return false;
         this->setKeypadEnabled(true);
         this->scheduleUpdate();
-        // Register the lobby event listener as early as possible so packets
-        // sent while the hub is closed are not missed after it opens.
+        // Register the lobby event listener and the always-alive session
+        // driver as early as possible, so lobby traffic (heartbeats,
+        // countdowns, match progress) continues inside levels too.
         VersusLobby::initialize();
+        SessionDriver::ensure();
         this->showHome();
         return true;
     }
@@ -69,9 +71,8 @@ namespace Versus {
 
     void LobbyLayer::update(float dt) {
         CCLayer::update(dt);
-        // Drive the lobby transport (heartbeats, timeouts, reconnection)
-        // whenever the hub scene is open.
-        VersusLobby::update(dt, Versus::globedInRoom() ? Versus::globedRoomId() : 0);
+        // The lobby transport itself runs from the SessionDriver, which
+        // keeps it alive inside levels; here we only refresh the open page.
         // Keep the lobby screen live while it is open.
         if (s_screen == Screen::Lobby && VersusLobby::joined()) {
             m_lobbyRefresh += dt;
