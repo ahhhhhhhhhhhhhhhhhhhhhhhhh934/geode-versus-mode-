@@ -5,7 +5,7 @@
   },
   "id": "versus.mode",
   "name": "Versus Mode",
-  "version": "v1.0.1",
+  "version": "v1.0.2",
   "developer": "Versus Mode Team",
   "description": "Geometry Dash Versus competition hub. Uses Globed 2.3.0 beta or newer for multiplayer networking and rooms.",
   "tags": [
