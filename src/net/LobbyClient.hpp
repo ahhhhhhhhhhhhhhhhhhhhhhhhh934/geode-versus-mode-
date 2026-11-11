@@ -157,6 +157,18 @@ namespace VersusLobby {
 
     inline void leave(); // defined below; join() needs it
 
+    inline char const* cancelReasonText(uint8_t reason) {
+        switch (reason) {
+            case 1: return "host cancelled";
+            case 2: return "player left";
+            case 3: return "disconnect";
+            case 4: return "timeout";
+            case 5: return "room closed";
+            case 6: return "level invalid";
+            default: return "unknown";
+        }
+    }
+
     inline void applyPacket(VersusProto::Decoded const& d, int sender) {
         // Every packet must be scoped to the lobby's room.
         if (d.roomId == 0 || d.roomId != s_roomId || sender <= 0) return;
@@ -636,18 +648,6 @@ namespace VersusLobby {
             } else {
                 ++it;
             }
-        }
-    }
-
-    inline char const* cancelReasonText(uint8_t reason) {
-        switch (reason) {
-            case 1: return "host cancelled";
-            case 2: return "player left";
-            case 3: return "disconnect";
-            case 4: return "timeout";
-            case 5: return "room closed";
-            case 6: return "level invalid";
-            default: return "unknown";
         }
     }
 
