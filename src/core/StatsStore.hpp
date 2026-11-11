@@ -11,6 +11,7 @@
 #include "MatchLogic.hpp"
 #include "Progression.hpp"
 
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -18,6 +19,11 @@ using namespace geode::prelude;
 
 namespace VersusStats {
     inline constexpr size_t kMaxHistoryEntries = 100;
+
+    // Wall-clock seconds; kept here so UI and tests share one definition.
+    inline int64_t nowUnix() {
+        return static_cast<int64_t>(std::time(nullptr));
+    }
 
     // ---- rank points ----------------------------------------------------------
 
