@@ -76,7 +76,7 @@ namespace Versus {
 
         // Numeric level-id entry with Geode's TextInput.
         auto* input = geode::TextInput::create(w * 0.60f, "ENTER LEVEL ID", "bigFont.fnt");
-        input->setCommonFilter(geode::CommonFilter::Integer);
+        input->setCommonFilter(geode::CommonFilter::Uint);
         input->setScale(0.9f);
         input->setPosition({w * 0.50f, h * 0.51f});
         input->setID("versus-level-id-input");
