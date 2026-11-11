@@ -1,0 +1,51 @@
+name: Build iOS Geode mod
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Build iOS arm64 Geode mod
+    runs-on: ubuntu-latest
+    container:
+      image: prevter/geode-sdk:ios
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure iOS build
+        run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compile iOS mod
+        run: cmake --build build --config Release --parallel 2
+
+      - name: Collect iOS outputs
+        shell: bash
+        run: |
+          mkdir -p release-assets/ios
+          find build -type f \( -name '*.geode' -o -name '*.dylib' \) -exec cp {} release-assets/ios/ \;
+          if [ -z "$(find release-assets/ios -type f -print -quit)" ]; then
+            echo "::error::The iOS build completed without producing a .geode package or .dylib."
+            find build -maxdepth 5 -type f | head -200
+            exit 1
+          fi
+          ls -lah release-assets/ios
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Versus-Mode-iOS-arm64
+          path: release-assets/ios/*
+          if-no-files-found: error
+          retention-days: 90
