@@ -7,7 +7,9 @@
 #include <globed/core/data/Messages.hpp>
 #include <globed/core/net/MessageListener.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -19,11 +21,12 @@ namespace VersusLobby {
     inline constexpr uint8_t kMaximumMode = 4;
     inline constexpr size_t kPacketSize = 8;
 
+    enum class Action : uint8_t { Join = 1, Ready = 2, Leave = 3, Heartbeat = 4 };
+
     inline bool validMode(uint8_t mode) { return mode >= kMinimumMode && mode <= kMaximumMode; }
     inline bool validAction(uint8_t action) {
         return action >= static_cast<uint8_t>(Action::Join) && action <= static_cast<uint8_t>(Action::Heartbeat);
     }
-    enum class Action : uint8_t { Join = 1, Ready = 2, Leave = 3, Heartbeat = 4 };
 
     struct RemotePlayer {
         int accountId = 0;
