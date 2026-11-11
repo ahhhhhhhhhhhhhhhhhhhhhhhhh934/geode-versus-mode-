@@ -80,7 +80,7 @@ namespace VersusLobby {
     // The Globed room owner is the Versus host. This is authoritative room
     // state from Globed, not a Versus invention.
     inline int hostAccountId() {
-        if (!globedApiAvailable() || !globedInRoom()) return 0;
+        if (!Versus::globedApiAvailable() || !Versus::globedInRoom()) return 0;
         return globed::api::room::getOwner();
     }
 
@@ -93,7 +93,7 @@ namespace VersusLobby {
 
     inline bool transportReady() {
         return s_joined && s_roomId != 0 &&
-            globedApiAvailable() && globed::api::net::isConnected();
+            Versus::globedApiAvailable() && globed::api::net::isConnected();
     }
 
     inline void send(std::vector<uint8_t>&& packet) {
@@ -105,6 +105,12 @@ namespace VersusLobby {
     }
 
     // ---- receiving ---------------------------------------------------------
+
+    // Last verdict seen from a Results packet (host-computed).
+    inline uint8_t s_lastVerdict = 0;
+    inline int32_t s_lastWinner = 0;
+
+    inline void leave(); // defined below; join() needs it
 
     inline void applyPacket(VersusProto::Decoded const& d, int sender) {
         // Every packet must be scoped to the lobby's room.
@@ -198,10 +204,6 @@ namespace VersusLobby {
             }
         }
     }
-
-    // Last verdict seen from a Results packet (host-computed).
-    inline uint8_t s_lastVerdict = 0;
-    inline int32_t s_lastWinner = 0;
 
     inline void initialize() {
         if (s_registered) return;
@@ -338,7 +340,7 @@ namespace VersusLobby {
         }
 
         // Reconnection: re-announce after Globed reconnects.
-        bool connected = globedApiAvailable() && globed::api::net::isConnected();
+        bool connected = Versus::globedApiAvailable() && globed::api::net::isConnected();
         if (connected && !s_wasConnected) {
             sendLobby(VersusProto::Action::Join);
         }
