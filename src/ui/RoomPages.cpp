@@ -45,6 +45,10 @@ namespace Versus {
 
         auto* menu = CCMenu::create();
         menu->setPosition({0,0});
+        if (inRoom) {
+            menu->addChild(VersusUI::button("OPEN VERSUS LOBBY", this, menu_selector(LobbyLayer::onJoinLobby),
+                {w * 0.50f, 92.f}, "GJ_button_05.png", 0.50f));
+        }
         menu->addChild(VersusUI::button("REFRESH ROOM", this, menu_selector(LobbyLayer::onGroupRooms),
             {w * 0.28f, 48.f}, "GJ_button_05.png", 0.44f));
         menu->addChild(VersusUI::button("ROOM STATUS", this, menu_selector(LobbyLayer::onRooms),
@@ -103,6 +107,133 @@ namespace Versus {
     void LobbyLayer::onPublicRooms(CCObject*) { showPublicRooms(); }
     void LobbyLayer::onGroupRooms(CCObject*) { showGroupRooms(); }
     void LobbyLayer::onLive(CCObject*) { showLive(); }
+
+    void LobbyLayer::showRoomLobby() {
+        s_screen = Screen::Lobby;
+        m_waitingForGlobed = false;
+        auto w = m_size.width;
+        auto h = m_size.height;
+
+        // The lobby lives only while the Globed room does.
+        if (!Versus::globedInRoom() || Versus::globedRoomId() != VersusLobby::roomId()) {
+            VersusLobby::leave();
+            showGroupRooms();
+            return;
+        }
+
+        uint32_t passcode = Versus::globedApiAvailable() ? globed::api::room::getPasscode() : 0;
+        std::string codeLine = passcode != 0
+            ? fmt::format("ROOM {}  •  CODE {}", VersusLobby::roomId(), passcode)
+            : fmt::format("ROOM {}", VersusLobby::roomId());
+        basePage("VERSUS LOBBY", codeLine.c_str());
+
+        int host = VersusLobby::hostAccountId();
+        bool hostKnown = host != 0;
+
+        // ---- player list -----------------------------------------------------
+        auto players = VersusLobby::players();
+        int self = VersusLobby::localAccountId();
+        size_t rows = players.size() + 1; // + self
+        float listTop = h * 0.78f;
+        float rowHeight = h * 0.062f;
+        float cardHeight = static_cast<float>(rows) * rowHeight + 26.f;
+        if (cardHeight > h * 0.52f) cardHeight = h * 0.52f;
+        VersusUI::addCard(m_page, {w * 0.50f, listTop - cardHeight / 2.f + 12.f},
+            {w * 0.88f, cardHeight}, {18, 42, 91, 255});
+
+        VersusUI::label(m_page, "PLAYERS", 0.24f, {w * 0.14f, listTop}, {125,190,240});
+        VersusUI::label(m_page, "STATUS", 0.24f, {w * 0.86f, listTop}, {125,190,240});
+
+        // Sort by account id so the list is stable between refreshes.
+        std::sort(players.begin(), players.end(),
+            [](auto const& a, auto const& b) { return a.accountId < b.accountId; });
+
+        float y = listTop - rowHeight;
+        bool hostInList = false;
+        auto drawRow = [&](int accountId, char const* suffix, bool isHost, bool ready) {
+            if (isHost) hostInList = true;
+            std::string name = fmt::format("PLAYER {}{}", accountId, suffix);
+            VersusUI::label(m_page, name.c_str(), 0.24f, {w * 0.22f, y}, {235,240,250});
+            char const* status = isHost ? "HOST" : (ready ? "READY" : "NOT READY");
+            VersusUI::label(m_page, status, 0.24f, {w * 0.82f, y},
+                isHost ? ccColor3B{255,210,110} : (ready ? ccColor3B{115,255,170} : ccColor3B{185,205,230}));
+            y -= rowHeight;
+        };
+
+        // Always draw the local player first so "you" are visible even
+        // before anyone else has joined.
+        bool selfListed = false;
+        for (auto const& p : players) {
+            if (p.accountId == self) {
+                drawRow(p.accountId, "  (YOU)", p.accountId == host, p.ready);
+                selfListed = true;
+            } else {
+                drawRow(p.accountId, "", p.accountId == host, p.ready);
+            }
+        }
+        if (!selfListed) drawRow(self, "  (YOU)", self == host, VersusLobby::ready());
+
+        if (hostKnown && !hostInList && self != host) {
+            VersusUI::label(m_page, fmt::format("HOST PLAYER {} NOT IN LOBBY", host).c_str(),
+                0.20f, {w * 0.50f, y + rowHeight * 0.5f}, {255,195,115});
+        }
+
+        // ---- match state banner ----------------------------------------------
+        if (VersusLobby::phase() == VersusLobby::MatchPhase::Countdown) {
+            int seconds = static_cast<int>(std::ceil(VersusLobby::s_countdown));
+            if (seconds < 0) seconds = 0;
+            VersusUI::label(m_page, fmt::format("MATCH STARTING IN {}", seconds).c_str(),
+                0.40f, {w * 0.50f, h * 0.24f}, {255,120,120});
+        } else {
+            size_t readyCount = 0;
+            for (auto const& p : players) if (p.ready) ++readyCount;
+            if (VersusLobby::ready()) ++readyCount;
+            VersusUI::label(m_page,
+                fmt::format("{} / {} PLAYERS READY", readyCount, players.size() + 1).c_str(),
+                0.28f, {w * 0.50f, h * 0.24f}, {145,220,255});
+        }
+
+        // ---- controls ----------------------------------------------------------
+        auto* menu = CCMenu::create();
+        menu->setPosition({0,0});
+        menu->addChild(VersusUI::button(VersusLobby::ready() ? "UNREADY" : "READY",
+            this, menu_selector(LobbyLayer::onToggleReady),
+            {w * 0.27f, h * 0.13f}, "GJ_button_04.png", 0.46f));
+        menu->addChild(VersusUI::button("LEAVE LOBBY", this, menu_selector(LobbyLayer::onLeaveLobby),
+            {w * 0.73f, h * 0.13f}, "GJ_button_01.png", 0.46f));
+        menu->addChild(VersusUI::button("PLAZA", this, menu_selector(LobbyLayer::onOpenPlaza),
+            {w * 0.50f, 30.f}, "GJ_button_01.png", 0.36f));
+        m_page->addChild(menu, 5);
+
+        if (hostKnown && self == host) {
+            VersusUI::label(m_page, "YOU ARE THE HOST  •  MATCH LAUNCH ARRIVES WITH THE MATCH SETUP PAGE",
+                0.19f, {w * 0.50f, 12.f}, {255,215,130});
+        } else {
+            VersusUI::label(m_page, "WAIT FOR THE HOST TO LAUNCH THE MATCH",
+                0.19f, {w * 0.50f, 12.f}, {150,180,215});
+        }
+    }
+
+    void LobbyLayer::onJoinLobby(CCObject*) {
+        if (!Versus::globedInRoom()) {
+            showGroupRooms();
+            return;
+        }
+        if (!VersusLobby::joined()) {
+            VersusLobby::join(Versus::globedRoomId(), 1);
+        }
+        showRoomLobby();
+    }
+
+    void LobbyLayer::onToggleReady(CCObject*) {
+        VersusLobby::setReady(!VersusLobby::ready());
+        showRoomLobby();
+    }
+
+    void LobbyLayer::onLeaveLobby(CCObject*) {
+        VersusLobby::leave();
+        showGroupRooms();
+    }
 
     void LobbyLayer::onWorkshop(CCObject*) {
         showInfo("VERSUS WORKSHOP", "COMMUNITY CONTENT",
@@ -167,7 +298,7 @@ namespace Versus {
             return;
         }
         if (globedInRoom()) {
-            showGroupRooms();
+            onJoinLobby(nullptr);
         } else {
             showInfo("ONLINE VERSUS", "GLOBED CONNECTED", "NO ROOM JOINED",
                 "Your Globed connection is ready.",
