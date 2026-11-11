@@ -131,6 +131,23 @@ class $modify(VersusPlayLayer, PlayLayer) {
         if (VersusPlay::matchActiveForLevel(level)) {
             // Reset local match state and show the live standings.
             VersusLobby::beginLocalPlay();
+
+            // Mode / level verification against the real level object. A
+            // mismatched level keeps the match running but says so, rather
+            // than silently playing a broken mode.
+            uint8_t mode = VersusLobby::mode();
+            auto* info = VersusModes::find(mode);
+            if (info && info->ranked) {
+                bool platformer = level->isPlatformer();
+                if (info->requiresPlatformer && !platformer) {
+                    VersusLobby::pushAlert("NOT A PLATFORMER LEVEL — TREAT THIS AS PRACTICE");
+                } else if (mode == static_cast<uint8_t>(VersusModes::Mode::ClassicRace) && platformer) {
+                    VersusLobby::pushAlert("PLATFORMER LEVEL IN A CLASSIC RACE — TREAT THIS AS PRACTICE");
+                }
+            } else if (info && !info->ranked) {
+                VersusLobby::pushAlert("WARM-UP ROOM — NOTHING IS RECORDED");
+            }
+
             auto* overlay = VersusPlay::StandingsOverlay::create();
             if (overlay) this->addChild(overlay, 1000);
         }
