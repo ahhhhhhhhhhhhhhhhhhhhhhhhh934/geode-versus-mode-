@@ -1,4 +1,5 @@
 #include "LobbyLayer.hpp"
+#include "../core/GameModes.hpp"
 
 // Pages that describe the room / network state. These screens never invent
 // data: every line comes from Globed's Soft Link API or states plainly that
@@ -126,6 +127,8 @@ namespace Versus {
             ? fmt::format("ROOM {}  •  CODE {}", VersusLobby::roomId(), passcode)
             : fmt::format("ROOM {}", VersusLobby::roomId());
         basePage("VERSUS LOBBY", codeLine.c_str());
+        VersusUI::label(m_page, fmt::format("MODE: {}", VersusModes::name(VersusLobby::mode())).c_str(),
+            0.26f, {m_size.width * 0.50f, m_size.height - 108.f}, {145,220,255});
 
         int host = VersusLobby::hostAccountId();
         bool hostKnown = host != 0;
@@ -199,8 +202,10 @@ namespace Versus {
         menu->addChild(VersusUI::button(VersusLobby::ready() ? "UNREADY" : "READY",
             this, menu_selector(LobbyLayer::onToggleReady),
             {w * 0.27f, h * 0.13f}, "GJ_button_04.png", 0.46f));
+        menu->addChild(VersusUI::button("CHOOSE MODE", this, menu_selector(LobbyLayer::onOpenModeSelect),
+            {w * 0.73f, h * 0.13f}, "GJ_button_02.png", 0.46f));
         menu->addChild(VersusUI::button("LEAVE LOBBY", this, menu_selector(LobbyLayer::onLeaveLobby),
-            {w * 0.73f, h * 0.13f}, "GJ_button_01.png", 0.46f));
+            {w * 0.50f, h * 0.065f}, "GJ_button_01.png", 0.40f));
         menu->addChild(VersusUI::button("PLAZA", this, menu_selector(LobbyLayer::onOpenPlaza),
             {w * 0.50f, 30.f}, "GJ_button_01.png", 0.36f));
         m_page->addChild(menu, 5);

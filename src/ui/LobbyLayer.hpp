@@ -34,6 +34,7 @@ namespace Versus {
         void showRooms();
         void showVoice();
         void showRoomLobby();
+        void showModeSelect();
         void showInfo(char const* title, char const* subtitle, char const* status,
             char const* detail, char const* extra);
         void showGlobedLoading();
@@ -49,6 +50,8 @@ namespace Versus {
         void onWorkshop(CCObject*);
         void onVoice(CCObject*);
         void onJoinLobby(CCObject*);
+        void onOpenModeSelect(CCObject*);
+        void onPickMode(CCObject*);
         void onToggleReady(CCObject*);
         void onLeaveLobby(CCObject*);
         void onLocal(CCObject*);
