@@ -65,6 +65,10 @@ namespace Versus {
         void onLeaveLobby(CCObject*);
         void onHostCancelMatch(CCObject*);
         void onShareCode(CCObject*);
+        void onQueueCasual(CCObject*);
+        void onQueueRanked(CCObject*);
+        void onTierPrev(CCObject*);
+        void onTierNext(CCObject*);
         void onLocal(CCObject*);
         void onOnline(CCObject*);
         void onBack(CCObject*);
