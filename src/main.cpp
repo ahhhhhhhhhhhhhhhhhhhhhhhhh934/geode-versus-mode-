@@ -72,7 +72,7 @@ namespace Versus {
             ? globed::api::room::getId() : 0;
     }
 
-    enum class Screen { Home, Plaza, Ranked, RankChallenge, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
+    enum class Screen { Home, Plaza, Ranked, RankChallenge, Leaderboard, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
     static Screen s_screen = Screen::Home;
 
     static geode::Mod* getGlobedMod() {
@@ -448,10 +448,38 @@ namespace Versus {
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
+            menu->addChild(button("LEADERBOARD", menu_selector(LobbyLayer::onLeaderboard),
+                {w * 0.28f, 72.f}, "GJ_button_04.png", 0.40f));
             menu->addChild(button("RANK CHALLENGE", menu_selector(LobbyLayer::onRankChallenge),
-                {w * 0.50f, 72.f}, "GJ_button_05.png", 0.43f));
+                {w * 0.72f, 72.f}, "GJ_button_05.png", 0.40f));
             menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
                 {w * 0.50f, 35.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
+        }
+
+        void showLeaderboard() {
+            s_screen = Screen::Leaderboard;
+            basePage("LEADERBOARD", "TOP VERSUS PLAYERS");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            addCard({w * 0.50f, h * 0.59f}, {w * 0.88f, h * 0.48f}, {18, 42, 91, 255});
+            label("GLOBAL RANKINGS", 0.38f,
+                {w * 0.50f, h * 0.76f}, {255,224,110});
+            label("RANK   PLAYER              RP     W-L", 0.24f,
+                {w * 0.50f, h * 0.65f}, {190,215,245});
+            label("ONLINE LEADERBOARD NOT CONNECTED", 0.30f,
+                {w * 0.50f, h * 0.53f}, {255,205,115});
+            label("No player entries are shown until verified online profiles exist.", 0.20f,
+                {w * 0.50f, h * 0.44f}, {220,230,245});
+            label("Your local rank is not a global placement.", 0.22f,
+                {w * 0.50f, h * 0.36f}, {165,200,240});
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("RANKS", menu_selector(LobbyLayer::onRanked),
+                {w * 0.30f, 38.f}, "GJ_button_02.png", 0.43f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.70f, 38.f}, "GJ_button_01.png", 0.43f));
             m_page->addChild(menu, 5);
         }
 
@@ -614,6 +642,7 @@ namespace Versus {
         void onOpenPlaza(CCObject*) { showPlaza(); }
         void onRanked(CCObject*) { showRanked(); }
         void onRankChallenge(CCObject*) { showRankChallenge(); }
+        void onLeaderboard(CCObject*) { showLeaderboard(); }
         void onProfile(CCObject*) { showProfile(); }
         void onPublicRooms(CCObject*) { showPublicRooms(); }
         void onGroupRooms(CCObject*) { showGroupRooms(); }
