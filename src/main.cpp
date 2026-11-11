@@ -72,7 +72,7 @@ namespace Versus {
             ? globed::api::room::getId() : 0;
     }
 
-    enum class Screen { Home, Plaza, Ranked, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
+    enum class Screen { Home, Plaza, Ranked, RankChallenge, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
     static Screen s_screen = Screen::Home;
 
     static geode::Mod* getGlobedMod() {
@@ -448,8 +448,45 @@ namespace Versus {
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
+            menu->addChild(button("RANK CHALLENGE", menu_selector(LobbyLayer::onRankChallenge),
+                {w * 0.50f, 72.f}, "GJ_button_05.png", 0.43f));
             menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
                 {w * 0.50f, 35.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
+        }
+
+        void showRankChallenge() {
+            s_screen = Screen::RankChallenge;
+            basePage("RANK CHALLENGE", "PLAY LEVELS MATCHED TO YOUR RANK");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            int points = rankPoints();
+            auto tier = rankTierIndex(points);
+            auto const& current = kRankTiers[tier];
+            addCard({w * 0.50f, h * 0.61f}, {w * 0.88f, h * 0.43f}, {18, 42, 91, 255});
+            label("YOUR LEVEL DIFFICULTY", 0.27f,
+                {w * 0.50f, h * 0.77f}, {190,215,245});
+            label(current.name, 0.55f,
+                {w * 0.50f, h * 0.68f}, current.color);
+            label("Your rank selects the matching level difficulty.", 0.25f,
+                {w * 0.50f, h * 0.57f}, {235,240,250});
+            label("AUTO → AUTO   •   EASY → EASY   •   NORMAL → NORMAL", 0.19f,
+                {w * 0.50f, h * 0.49f}, {190,215,245});
+            label("HARD → HARD   •   HARDER → HARDER   •   INSANE → INSANE", 0.18f,
+                {w * 0.50f, h * 0.44f}, {190,215,245});
+            label("DEMON RANKS → MATCHING DEMON DIFFICULTY", 0.19f,
+                {w * 0.50f, h * 0.39f}, {255,190,170});
+            label("NO WAGERS OR LOST RANK POINTS", 0.23f,
+                {w * 0.50f, h * 0.31f}, {125,255,175});
+            label("LEVEL POOL NOT CONNECTED YET — PREVIEW", 0.19f,
+                {w * 0.50f, h * 0.25f}, {255,205,115});
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("RANKS", menu_selector(LobbyLayer::onRanked),
+                {w * 0.30f, 38.f}, "GJ_button_02.png", 0.43f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.70f, 38.f}, "GJ_button_01.png", 0.43f));
             m_page->addChild(menu, 5);
         }
 
@@ -576,6 +613,7 @@ namespace Versus {
 
         void onOpenPlaza(CCObject*) { showPlaza(); }
         void onRanked(CCObject*) { showRanked(); }
+        void onRankChallenge(CCObject*) { showRankChallenge(); }
         void onProfile(CCObject*) { showProfile(); }
         void onPublicRooms(CCObject*) { showPublicRooms(); }
         void onGroupRooms(CCObject*) { showGroupRooms(); }
