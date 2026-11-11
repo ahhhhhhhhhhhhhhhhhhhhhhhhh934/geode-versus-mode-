@@ -64,7 +64,6 @@ namespace Versus {
         void onToggleReady(CCObject*);
         void onLeaveLobby(CCObject*);
         void onHostCancelMatch(CCObject*);
-        void onShareCode(CCObject*);
         void onQueueCasual(CCObject*);
         void onQueueRanked(CCObject*);
         void onTierPrev(CCObject*);
