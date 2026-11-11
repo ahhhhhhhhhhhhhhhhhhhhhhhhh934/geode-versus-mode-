@@ -204,6 +204,10 @@ namespace Versus {
             {w * 0.27f, h * 0.13f}, "GJ_button_04.png", 0.46f));
         menu->addChild(VersusUI::button("CHOOSE MODE", this, menu_selector(LobbyLayer::onOpenModeSelect),
             {w * 0.73f, h * 0.13f}, "GJ_button_02.png", 0.46f));
+        if (VersusLobby::isHost()) {
+            menu->addChild(VersusUI::button("MATCH SETUP", this, menu_selector(LobbyLayer::onOpenMatchSetup),
+                {w * 0.50f, h * 0.24f}, "GJ_button_05.png", 0.40f));
+        }
         menu->addChild(VersusUI::button("LEAVE LOBBY", this, menu_selector(LobbyLayer::onLeaveLobby),
             {w * 0.50f, h * 0.065f}, "GJ_button_01.png", 0.40f));
         menu->addChild(VersusUI::button("PLAZA", this, menu_selector(LobbyLayer::onOpenPlaza),
@@ -211,7 +215,7 @@ namespace Versus {
         m_page->addChild(menu, 5);
 
         if (hostKnown && self == host) {
-            VersusUI::label(m_page, "YOU ARE THE HOST  •  MATCH LAUNCH ARRIVES WITH THE MATCH SETUP PAGE",
+            VersusUI::label(m_page, "YOU ARE THE HOST",
                 0.19f, {w * 0.50f, 12.f}, {255,215,130});
         } else {
             VersusUI::label(m_page, "WAIT FOR THE HOST TO LAUNCH THE MATCH",
