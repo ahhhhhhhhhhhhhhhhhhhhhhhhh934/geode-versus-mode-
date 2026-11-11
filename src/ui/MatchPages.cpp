@@ -97,9 +97,22 @@ namespace Versus {
         VersusUI::label(m_page,
             "5 SECOND COUNTDOWN  •  EVERYONE WARPS INTO THE LEVEL SESSION",
             0.17f, {w * 0.50f, h * 0.155f}, {160,195,230});
-        VersusUI::label(m_page,
-            "Platformer Battle requires a platformer level — verify before launching.",
-            0.16f, {w * 0.50f, h * 0.11f}, {255,205,140});
+
+        // Mode-aware level hints: the pure check says what can and cannot
+        // be verified from the id alone, and warm-up says plainly that
+        // nothing is recorded.
+        int previewId = 0;
+        if (m_levelInput) {
+            try { previewId = std::stoi(m_levelInput->getString()); } catch (...) {}
+        }
+        auto check = VersusModes::checkLevelForMode(VersusLobby::mode(), previewId);
+        auto* hint = VersusModes::levelCheckHint(check);
+        VersusUI::label(m_page, hint, 0.17f, {w * 0.50f, h * 0.11f},
+            check == VersusModes::LevelCheck::Ok ? ccColor3B{150,235,180} : ccColor3B{255,205,140});
+        if (auto* m = VersusModes::find(VersusLobby::mode()); m && !m->ranked) {
+            VersusUI::label(m_page, "WARM-UP ROOM: NO WINS, LOSSES OR RANK POINTS",
+                0.16f, {w * 0.50f, h * 0.075f}, {160,220,255});
+        }
     }
 
     void LobbyLayer::onOpenMatchSetup(CCObject*) {
@@ -146,6 +159,30 @@ namespace Versus {
                 "Level IDs are numbers, like 90123012.");
             return;
         }
+        // Mode-level validation from the pure rules layer. Platformer and
+        // classic mismatches cannot be verified from the id alone, so they
+        // warn here and are verified against the real level when it opens.
+        auto check = VersusModes::checkLevelForMode(VersusLobby::mode(), levelId);
+        if (check == VersusModes::LevelCheck::UnknownMode) {
+            showInfo("MATCH SETUP", "UNKNOWN MODE", "PICK A MODE FIRST",
+                "Choose a game mode in the lobby before launching.", "");
+            return;
+        }
+        if (check == VersusModes::LevelCheck::NeedsPlatformerLevel ||
+            check == VersusModes::LevelCheck::NeedsClassicLevel) {
+            // Confirm-first: warn once, launch on the second press for the
+            // same level. The real check runs when the level opens.
+            if (m_confirmLaunchLevelId != levelId) {
+                m_confirmLaunchLevelId = levelId;
+                showInfo("MATCH SETUP", "CHECK THE LEVEL TYPE",
+                    check == VersusModes::LevelCheck::NeedsPlatformerLevel
+                        ? "PLATFORMER LEVEL EXPECTED" : "CLASSIC LEVEL EXPECTED",
+                    "Press LAUNCH MATCH again to launch this level anyway.",
+                    VersusModes::levelCheckHint(check));
+                return;
+            }
+        }
+        m_confirmLaunchLevelId = 0;
         VersusLobby::launchMatch(levelId, VersusLobby::mode(), 5);
         showRoomLobby();
     }

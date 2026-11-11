@@ -74,6 +74,46 @@ namespace VersusModes {
         return m && m->ranked;
     }
 
+    // ---- mode / level validation ------------------------------------------
+
+    // What the pure layer can check about a level id for a mode. Whether a
+    // level is a platformer level cannot be known from the id alone — the
+    // UI shows those as warnings, and the level-start hook verifies them
+    // against the real level object.
+    enum class LevelCheck : uint8_t {
+        Ok = 0,
+        UnknownMode = 1,
+        InvalidId = 2,
+        NeedsPlatformerLevel = 3, // Platformer Battle: warn, verify at start
+        NeedsClassicLevel = 4,    // Classic Level Race: warn, verify at start
+        WarmupAnyLevel = 5,       // warm-up: anything goes, nothing recorded
+    };
+
+    inline LevelCheck checkLevelForMode(uint8_t mode, int levelId) {
+        auto* m = find(mode);
+        if (!m) return LevelCheck::UnknownMode;
+        if (levelId <= 0) return LevelCheck::InvalidId;
+        if (!m->ranked) return LevelCheck::WarmupAnyLevel;
+        if (m->requiresPlatformer) return LevelCheck::NeedsPlatformerLevel;
+        if (mode == static_cast<uint8_t>(Mode::ClassicRace)) return LevelCheck::NeedsClassicLevel;
+        return LevelCheck::Ok;
+    }
+
+    inline char const* levelCheckHint(LevelCheck check) {
+        switch (check) {
+            case LevelCheck::Ok: return "LEVEL LOOKS RIGHT FOR THIS MODE";
+            case LevelCheck::UnknownMode: return "UNKNOWN MODE";
+            case LevelCheck::InvalidId: return "ENTER A LEVEL ID";
+            case LevelCheck::NeedsPlatformerLevel:
+                return "PLATFORMER LEVEL REQUIRED — VERIFIED WHEN THE LEVEL OPENS";
+            case LevelCheck::NeedsClassicLevel:
+                return "CLASSIC (NON-PLATFORMER) LEVEL REQUIRED — VERIFIED WHEN THE LEVEL OPENS";
+            case LevelCheck::WarmupAnyLevel:
+                return "WARM-UP: ANY LEVEL WORKS, NOTHING IS RECORDED";
+            default: return "";
+        }
+    }
+
     // ---- difficulty categories (Auto through Extreme Demon) ---------------
 
     // The official Geometry Dash difficulty categories, aligned with the rank

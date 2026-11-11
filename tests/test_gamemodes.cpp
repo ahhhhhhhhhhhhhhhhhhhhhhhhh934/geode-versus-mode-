@@ -79,10 +79,35 @@ static void testDifficultyCategories() {
     CHECK(difficultyAt(0) != nullptr);
 }
 
+
+static void testLevelChecks() {
+    using LC = VersusModes::LevelCheck;
+    // Unknown mode
+    CHECK(VersusModes::checkLevelForMode(99, 500) == LC::UnknownMode);
+    // Invalid ids
+    CHECK(VersusModes::checkLevelForMode(1, 0) == LC::InvalidId);
+    CHECK(VersusModes::checkLevelForMode(1, -5) == LC::InvalidId);
+    // Plain race modes only need a valid id
+    CHECK(VersusModes::checkLevelForMode(1, 500) == LC::Ok);
+    CHECK(VersusModes::checkLevelForMode(2, 500) == LC::Ok);
+    CHECK(VersusModes::checkLevelForMode(3, 500) == LC::Ok);
+    // Platformer / classic expectations
+    CHECK(VersusModes::checkLevelForMode(4, 500) == LC::NeedsPlatformerLevel);
+    CHECK(VersusModes::checkLevelForMode(5, 500) == LC::NeedsClassicLevel);
+    // Warm-up accepts anything with a valid id
+    CHECK(VersusModes::checkLevelForMode(6, 500) == LC::WarmupAnyLevel);
+    CHECK(VersusModes::checkLevelForMode(6, 0) == LC::InvalidId);
+    // Hints exist for every verdict
+    for (uint8_t c = 0; c <= 5; ++c) {
+        CHECK(std::string_view(VersusModes::levelCheckHint(static_cast<VersusModes::LevelCheck>(c))).size() > 0);
+    }
+}
+
 int main() {
     testRegistry();
     testModeSemantics();
     testDifficultyCategories();
+    testLevelChecks();
 
     if (g_failures == 0) {
         std::printf("All game mode tests passed.\n");

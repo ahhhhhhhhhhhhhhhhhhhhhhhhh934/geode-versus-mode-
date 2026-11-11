@@ -83,6 +83,7 @@ namespace Versus {
         CCSize m_size;
         CCLayer* m_page = nullptr;
         geode::TextInput* m_levelInput = nullptr;
+        int m_confirmLaunchLevelId = 0;
         bool m_waitingForGlobed = false;
         float m_lobbyRefresh = 0.f;
 
