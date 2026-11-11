@@ -40,7 +40,7 @@ namespace Versus {
                     if (playLayer && playLayer->m_level &&
                         playLayer->m_level->m_levelID == VersusLobby::levelId()) {
                         VersusLobby::reportLocalProgress(static_cast<uint16_t>(
-                            playLayer->m_percentage * 10));
+                            playLayer->getCurrentPercentInt() * 10));
                     }
                 }
             } else {

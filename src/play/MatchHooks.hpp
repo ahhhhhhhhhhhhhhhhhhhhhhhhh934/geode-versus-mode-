@@ -65,7 +65,7 @@ namespace VersusPlay {
             size_t lineIndex = 0;
 
             // The local line.
-            auto localPercent = PlayLayer::get() ? PlayLayer::get()->m_percentage : 0;
+            auto localPercent = PlayLayer::get() ? PlayLayer::get()->getCurrentPercentInt() : 0;
             std::string localLine = fmt::format("YOU  {}%  {} DEATHS{}",
                 localPercent, VersusLobby::s_localDeaths,
                 VersusLobby::s_localFinished ? "  FINISHED" :
@@ -130,7 +130,7 @@ class $modify(VersusPlayLayer, PlayLayer) {
         if (!VersusPlay::matchActiveForLevel(m_level)) return;
         // Only the local player's deaths count for Versus.
         if (player != m_player1) return;
-        VersusLobby::reportLocalDeath(static_cast<uint16_t>(m_percentage * 10));
+        VersusLobby::reportLocalDeath(static_cast<uint16_t>(getCurrentPercentInt() * 10));
     }
 
     void levelComplete() {
