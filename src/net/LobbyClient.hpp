@@ -522,9 +522,13 @@ namespace VersusLobby {
             return;
         }
 
-        // Reconnection: re-announce after Globed reconnects.
+        // Reconnection: re-announce after Globed reconnects, and keep the
+        // player informed about what is happening with the transport.
         bool connected = Versus::globedApiAvailable() && globed::api::net::isConnected();
-        if (connected && !s_wasConnected) {
+        if (!connected && s_wasConnected) {
+            pushAlert("CONNECTION LOST — RECONNECTING");
+        } else if (connected && !s_wasConnected) {
+            pushAlert("RECONNECTED — REJOINING LOBBY");
             sendLobby(VersusProto::Action::Join);
         }
         s_wasConnected = connected;

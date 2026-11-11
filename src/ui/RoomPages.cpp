@@ -142,6 +142,20 @@ namespace Versus {
             }
         }
 
+        // ---- connection status -------------------------------------------------
+        {
+            char const* state = Versus::globedConnectionStateName();
+            uint32_t ping = Versus::globedApiAvailable() ? globed::api::net::getCentralPingMs() : 0;
+            bool online = Versus::globedConnected();
+            std::string line = online
+                ? fmt::format("{}  •  {} MS", state, ping)
+                : std::string(state);
+            if (!online) line += "  •  PACKETS PAUSED";
+            VersusUI::label(m_page, line.c_str(), 0.20f,
+                {w * 0.50f, m_size.height - 158.f},
+                online ? ccColor3B{115,255,170} : ccColor3B{255,140,140});
+        }
+
         int host = VersusLobby::hostAccountId();
         bool hostKnown = host != 0;
 
@@ -246,6 +260,15 @@ namespace Versus {
     void LobbyLayer::onJoinLobby(CCObject*) {
         if (!Versus::globedInRoom()) {
             showGroupRooms();
+            return;
+        }
+        if (!Versus::globedConnected()) {
+            // A room exists but the central server is unreachable: say so
+            // plainly instead of showing an empty lobby.
+            showInfo("CANNOT JOIN LOBBY", "CONNECTION",
+                "NOT CONNECTED TO GLOBED",
+                "The room is there, but the central server is unreachable.",
+                fmt::format("CONNECTION STATE: {}", Versus::globedConnectionStateName()).c_str());
             return;
         }
         if (!VersusLobby::joined()) {

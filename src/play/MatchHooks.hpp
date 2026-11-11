@@ -40,6 +40,13 @@ namespace VersusPlay {
             m_title->setPosition({size.width * 0.16f, size.height - 34.f});
             this->addChild(m_title, 10);
 
+            m_conn = CCLabelBMFont::create("", "bigFont.fnt");
+            m_conn->setScale(0.15f);
+            m_conn->setColor({255, 140, 140});
+            m_conn->setAnchorPoint({1.f, 0.5f});
+            m_conn->setPosition({size.width * 0.95f, size.height - 34.f});
+            this->addChild(m_conn, 10);
+
             for (auto& line : m_lines) {
                 line = CCLabelBMFont::create("", "bigFont.fnt");
                 line->setScale(0.16f);
@@ -56,6 +63,10 @@ namespace VersusPlay {
             m_refresh += dt;
             if (m_refresh < 1.f) return;
             m_refresh = 0.f;
+
+            // In-level network warning: match traffic pauses while Globed
+            // is offline and resumes (with a lobby rejoin) when it returns.
+            m_conn->setString(Versus::globedConnected() ? "" : "RECONNECTING…");
 
             auto* info = VersusModes::find(VersusLobby::mode());
             m_title->setString(info ? info->name : "VERSUS");
@@ -109,6 +120,7 @@ namespace VersusPlay {
 
         float m_refresh = 0.f;
         CCLabelBMFont* m_title = nullptr;
+        CCLabelBMFont* m_conn = nullptr;
         CCLabelBMFont* m_lines[kMaxLines] = {};
     };
 }
