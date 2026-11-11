@@ -72,7 +72,7 @@ namespace Versus {
             ? globed::api::room::getId() : 0;
     }
 
-    enum class Screen { Home, Plaza, Ranked, RankChallenge, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
+    enum class Screen { Home, Plaza, Ranked, RankChallenge, Leaderboard, Profile, PublicRooms, GroupRooms, Live, Rooms, Voice, Local, Online, Loading, Info };
     static Screen s_screen = Screen::Home;
 
     static geode::Mod* getGlobedMod() {
@@ -448,10 +448,60 @@ namespace Versus {
 
             auto* menu = CCMenu::create();
             menu->setPosition({0,0});
+            menu->addChild(button("LEADERBOARD", menu_selector(LobbyLayer::onLeaderboard),
+                {w * 0.28f, 72.f}, "GJ_button_04.png", 0.40f));
             menu->addChild(button("RANK CHALLENGE", menu_selector(LobbyLayer::onRankChallenge),
-                {w * 0.50f, 72.f}, "GJ_button_05.png", 0.43f));
+                {w * 0.72f, 72.f}, "GJ_button_05.png", 0.40f));
             menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
                 {w * 0.50f, 35.f}, "GJ_button_01.png", 0.43f));
+            m_page->addChild(menu, 5);
+        }
+
+        void showLeaderboard() {
+            s_screen = Screen::Leaderboard;
+            basePage("LEADERBOARD", "GLOBAL  •  MODES  •  PLAYER RECORDS");
+            auto w = m_size.width;
+            auto h = m_size.height;
+
+            // Full leaderboard layout. Every data-dependent section is shown,
+            // but unavailable online data is explicitly marked rather than
+            // replaced with invented players or client-side guesses.
+            addCard({w * 0.50f, h * 0.61f}, {w * 0.90f, h * 0.55f}, {18, 42, 91, 255});
+            label("RANKINGS", 0.34f,
+                {w * 0.50f, h * 0.82f}, {255,224,110});
+            label("GLOBAL  •  FRIENDS  •  SEASON  •  REGION", 0.20f,
+                {w * 0.50f, h * 0.75f}, {190,215,245});
+            label("GLOBAL LEADERBOARD NOT CONNECTED", 0.29f,
+                {w * 0.50f, h * 0.66f}, {255,205,115});
+            label("No verified online player dataset is available.", 0.22f,
+                {w * 0.50f, h * 0.60f}, {220,230,245});
+
+            label("PLAYER STATISTICS", 0.30f,
+                {w * 0.50f, h * 0.50f}, {255,224,110});
+            label("Rank points: local preview only", 0.22f,
+                {w * 0.50f, h * 0.44f}, {210,225,245});
+            label("Wins / losses / win rate: awaiting verified matches", 0.19f,
+                {w * 0.50f, h * 0.39f}, {210,225,245});
+            label("Streaks / per-mode records / match history: unavailable", 0.18f,
+                {w * 0.50f, h * 0.34f}, {190,210,240});
+
+            label("FILTERS & SORTING", 0.28f,
+                {w * 0.50f, h * 0.26f}, {255,224,110});
+            label("Overall  •  1v1 Race  •  Survival  •  Dual  •  Platformer", 0.17f,
+                {w * 0.50f, h * 0.21f}, {190,215,245});
+            label("Sort: RP / Wins / Win Rate / Streak  •  Search & pages planned", 0.16f,
+                {w * 0.50f, h * 0.17f}, {175,200,235});
+            label("Friends / seasons / regions require online profile support", 0.17f,
+                {w * 0.50f, h * 0.13f}, {255,195,125});
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("RANKS", menu_selector(LobbyLayer::onRanked),
+                {w * 0.28f, 38.f}, "GJ_button_02.png", 0.40f));
+            menu->addChild(button("PROFILE", menu_selector(LobbyLayer::onProfile),
+                {w * 0.50f, 38.f}, "GJ_button_04.png", 0.40f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.72f, 38.f}, "GJ_button_01.png", 0.40f));
             m_page->addChild(menu, 5);
         }
 
@@ -614,6 +664,7 @@ namespace Versus {
         void onOpenPlaza(CCObject*) { showPlaza(); }
         void onRanked(CCObject*) { showRanked(); }
         void onRankChallenge(CCObject*) { showRankChallenge(); }
+        void onLeaderboard(CCObject*) { showLeaderboard(); }
         void onProfile(CCObject*) { showProfile(); }
         void onPublicRooms(CCObject*) { showPublicRooms(); }
         void onGroupRooms(CCObject*) { showGroupRooms(); }

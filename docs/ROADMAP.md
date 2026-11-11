@@ -50,6 +50,12 @@ Versus Mode should feel like a complete Geometry Dash competition hub: fast to e
 - [ ] Achievements, titles, badges, and unlockable profile cosmetics.
 - [ ] Local practice statistics clearly separated from verified online records.
 
+### Leaderboard
+- [ ] Global leaderboard with verified player identity, rank points, wins, losses, win rate, streak, and per-mode filters; show season and region filters only when the data source supports them.
+- [ ] Never populate the online leaderboard with local-only rank values, fabricated players, placeholder scores, or unverified match results.
+- [ ] Connect rankings to persistent online profiles and verified match results before displaying real player standings.
+- [ ] The current leaderboard page is a navigation/UI placeholder only; it intentionally shows no fabricated player rows.
+
 ## Social and community
 
 - [ ] Party invites and private friend matches.
