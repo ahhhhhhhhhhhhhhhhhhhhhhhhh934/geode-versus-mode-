@@ -1,12 +1,12 @@
 #pragma once
 
-// Versus lobby protocol v3 — a pure, dependency-free packet codec.
+// Versus lobby protocol v4 — a pure, dependency-free packet codec.
 //
 // Transport: Globed Soft Link Server Events (see src/net/LobbyClient.hpp).
 // The packet header is fixed-size and little-endian:
 //
 //   byte 0: magic 'V' (0x56)
-//   byte 1: protocol version (3)
+//   byte 1: protocol version (4)
 //   byte 2: action
 //   byte 3: payload length (bytes that follow the 8-byte header)
 //   bytes 4-7: room id (u32 LE) — every packet is scoped to one Globed room
@@ -19,8 +19,8 @@
 #include <vector>
 
 namespace VersusProto {
-    inline constexpr std::string_view kEventId = "versus.mode/lobby-v3";
-    inline constexpr uint8_t kProtocolVersion = 3;
+    inline constexpr std::string_view kEventId = "versus.mode/lobby-v4";
+    inline constexpr uint8_t kProtocolVersion = 4;
     inline constexpr uint8_t kMagic = 0x56;
     inline constexpr size_t kHeaderSize = 8;
 
@@ -78,6 +78,8 @@ namespace VersusProto {
         // lobby fields
         uint8_t mode = 0;
         bool ready = false;
+        uint8_t queueType = 0;     // 0 casual, 1 ranked
+        uint8_t difficultyTier = 0; // 0..10, index into the difficulty ladder
         // match fields
         uint32_t matchId = 0;
         int levelId = 0;
@@ -134,11 +136,15 @@ namespace VersusProto {
 
     // ---- per-action encoders ----------------------------------------------
 
-    inline std::vector<uint8_t> encodeLobby(uint32_t roomId, Action action, uint8_t mode, bool ready) {
-        // Join / Ready / Heartbeat share a 2-byte payload: mode, ready
-        auto out = makeHeader(action, roomId, 2);
+    inline std::vector<uint8_t> encodeLobby(uint32_t roomId, Action action,
+        uint8_t mode, bool ready, uint8_t queueType, uint8_t difficultyTier) {
+        // Join / Ready / Heartbeat share a 4-byte payload: mode, ready,
+        // queue type (casual / ranked) and difficulty tier.
+        auto out = makeHeader(action, roomId, 4);
         out.push_back(mode);
         out.push_back(ready ? 1 : 0);
+        out.push_back(queueType);
+        out.push_back(difficultyTier);
         return out;
     }
 
@@ -216,7 +222,7 @@ namespace VersusProto {
         switch (static_cast<Action>(action)) {
             case Action::Join:
             case Action::Ready:
-            case Action::Heartbeat: return 2;
+            case Action::Heartbeat: return 4;
             case Action::Leave: return 0;
             case Action::Launch:
             case Action::Countdown: return 10;
@@ -253,6 +259,8 @@ namespace VersusProto {
             case Action::Heartbeat:
                 d.mode = bytes[kHeaderSize];
                 d.ready = bytes[kHeaderSize + 1] != 0;
+                d.queueType = bytes[kHeaderSize + 2];
+                d.difficultyTier = bytes[kHeaderSize + 3];
                 break;
             case Action::Leave:
                 break;

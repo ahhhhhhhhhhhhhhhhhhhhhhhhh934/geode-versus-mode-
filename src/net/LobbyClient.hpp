@@ -49,6 +49,8 @@ namespace VersusLobby {
         int accountId = 0;
         uint8_t mode = 0;
         bool ready = false;
+        uint8_t queueType = 0;     // 0 casual, 1 ranked
+        uint8_t difficultyTier = 0; // 0..10, difficulty ladder index
         float lastSeen = 0.f;
         // live match data (updated by Progress/Finish packets)
         uint16_t percentX10 = 0;
@@ -101,6 +103,12 @@ namespace VersusLobby {
     // before a migrated host starts resolving the match.
     inline int s_hostAtLaunch = 0;
     inline float s_hostGrace = 0.f;
+
+    // Queue preferences: casual or ranked, plus the difficulty band the
+    // player wants to play. Room-scoped only — Globed's central server
+    // forwards events inside one room, so there is no global queue.
+    inline uint8_t s_queueType = 0;
+    inline uint8_t s_difficultyTier = 0;
 
     inline void pushAlert(std::string const& text) {
         s_alerts.push_back({text, 0.f});
@@ -190,6 +198,8 @@ namespace VersusLobby {
                 p.accountId = sender;
                 p.mode = d.mode;
                 p.ready = d.ready;
+                p.queueType = d.queueType;
+                p.difficultyTier = d.difficultyTier;
                 p.lastSeen = s_clock;
                 break;
             }
@@ -294,7 +304,8 @@ namespace VersusLobby {
     // ---- lobby lifecycle ----------------------------------------------------
 
     inline void sendLobby(VersusProto::Action action) {
-        send(VersusProto::encodeLobby(s_roomId, action, s_mode, s_ready));
+        send(VersusProto::encodeLobby(s_roomId, action, s_mode, s_ready,
+            s_queueType, s_difficultyTier));
     }
 
     inline void join(uint32_t roomId, uint8_t mode) {
@@ -322,6 +333,16 @@ namespace VersusLobby {
         sendLobby(VersusProto::Action::Heartbeat);
     }
 
+    // Queue preferences broadcast with every lobby packet.
+    inline void setQueue(uint8_t queueType, uint8_t difficultyTier) {
+        if (!s_joined) return;
+        if (queueType > 1) return;
+        if (difficultyTier > 10) return;
+        s_queueType = queueType;
+        s_difficultyTier = difficultyTier;
+        sendLobby(VersusProto::Action::Heartbeat);
+    }
+
     inline void leave() {
         if (s_joined) sendLobby(VersusProto::Action::Leave);
         s_players.clear();
@@ -334,6 +355,8 @@ namespace VersusLobby {
         s_phase = MatchPhase::None;
         s_countdown = 0.f;
         s_resultsRecorded = false;
+        s_queueType = 0;
+        s_difficultyTier = 0;
     }
 
     // ---- verdict recording ------------------------------------------------------
@@ -673,6 +696,8 @@ namespace VersusLobby {
     }
 
     inline uint8_t lastCancelReason() { return s_lastCancelReason; }
+    inline uint8_t queueType() { return s_queueType; }
+    inline uint8_t difficultyTier() { return s_difficultyTier; }
 
     inline size_t playerCount(uint8_t mode) {
         size_t count = 0;

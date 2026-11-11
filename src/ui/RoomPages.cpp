@@ -1,5 +1,6 @@
 #include "LobbyLayer.hpp"
 #include "../core/GameModes.hpp"
+#include "../core/Matchmaking.hpp"
 #include "../core/Protocol.hpp"
 
 // Pages that describe the room / network state. These screens never invent
@@ -221,17 +222,17 @@ namespace Versus {
             int seconds = static_cast<int>(std::ceil(VersusLobby::s_countdown));
             if (seconds < 0) seconds = 0;
             VersusUI::label(m_page, fmt::format("MATCH STARTING IN {}", seconds).c_str(),
-                0.40f, {w * 0.50f, h * 0.24f}, {255,120,120});
+                0.40f, {w * 0.50f, h * 0.33f}, {255,120,120});
         } else if (VersusLobby::phase() == VersusLobby::MatchPhase::InGame) {
             VersusUI::label(m_page, "MATCH IN PROGRESS — PLAY THE LEVEL",
-                0.28f, {w * 0.50f, h * 0.24f}, {255,160,120});
+                0.28f, {w * 0.50f, h * 0.33f}, {255,160,120});
         } else {
             size_t readyCount = 0;
             for (auto const& p : players) if (p.ready) ++readyCount;
             if (VersusLobby::ready()) ++readyCount;
             VersusUI::label(m_page,
                 fmt::format("{} / {} PLAYERS READY", readyCount, players.size() + 1).c_str(),
-                0.28f, {w * 0.50f, h * 0.24f}, {145,220,255});
+                0.28f, {w * 0.50f, h * 0.33f}, {145,220,255});
         }
 
         // ---- controls ----------------------------------------------------------
@@ -239,9 +240,11 @@ namespace Versus {
         menu->setPosition({0,0});
         menu->addChild(VersusUI::button(VersusLobby::ready() ? "UNREADY" : "READY",
             this, menu_selector(LobbyLayer::onToggleReady),
-            {w * 0.27f, h * 0.13f}, "GJ_button_04.png", 0.46f));
+            {w * 0.27f, h * 0.155f}, "GJ_button_04.png", 0.44f));
         menu->addChild(VersusUI::button("CHOOSE MODE", this, menu_selector(LobbyLayer::onOpenModeSelect),
-            {w * 0.73f, h * 0.13f}, "GJ_button_02.png", 0.46f));
+            {w * 0.73f, h * 0.155f}, "GJ_button_02.png", 0.44f));
+        menu->addChild(VersusUI::button("MATCHMAKING", this, menu_selector(LobbyLayer::onOpenMatchmaking),
+            {w * 0.50f, h * 0.105f}, "GJ_button_03.png", 0.42f));
         bool matchActive = VersusLobby::phase() == VersusLobby::MatchPhase::Countdown ||
             VersusLobby::phase() == VersusLobby::MatchPhase::InGame;
         if (VersusLobby::isHost() && matchActive) {
@@ -252,9 +255,9 @@ namespace Versus {
                 {w * 0.50f, h * 0.24f}, "GJ_button_05.png", 0.40f));
         }
         menu->addChild(VersusUI::button("SHARE CODE", this, menu_selector(LobbyLayer::onShareCode),
-            {w * 0.27f, h * 0.065f}, "GJ_button_03.png", 0.36f));
+            {w * 0.27f, h * 0.055f}, "GJ_button_03.png", 0.36f));
         menu->addChild(VersusUI::button("LEAVE LOBBY", this, menu_selector(LobbyLayer::onLeaveLobby),
-            {w * 0.73f, h * 0.065f}, "GJ_button_01.png", 0.36f));
+            {w * 0.73f, h * 0.055f}, "GJ_button_01.png", 0.36f));
         menu->addChild(VersusUI::button("PLAZA", this, menu_selector(LobbyLayer::onOpenPlaza),
             {w * 0.50f, 30.f}, "GJ_button_01.png", 0.36f));
         m_page->addChild(menu, 5);
@@ -266,6 +269,116 @@ namespace Versus {
             VersusUI::label(m_page, "WAIT FOR THE HOST TO LAUNCH THE MATCH",
                 0.19f, {w * 0.50f, 12.f}, {150,180,215});
         }
+    }
+
+    void LobbyLayer::showMatchmaking() {
+        s_screen = Screen::Matchmaking;
+        basePage("MATCHMAKING", "ROOM-SCOPED QUEUE PREFERENCES");
+        auto w = m_size.width;
+        auto h = m_size.height;
+
+        // ---- queue type toggle -------------------------------------------------
+        bool ranked = VersusLobby::queueType() == 1;
+        VersusUI::addCard(m_page, {w * 0.50f, h * 0.72f}, {w * 0.88f, h * 0.14f}, {18, 42, 91, 255});
+        VersusUI::label(m_page, ranked ? "QUEUE: RANKED" : "QUEUE: CASUAL", 0.30f,
+            {w * 0.50f, h * 0.755f}, ranked ? ccColor3B{255,224,110} : ccColor3B{145,220,255});
+        VersusUI::label(m_page, ranked
+            ? "Ranked matches move your local rank points." :
+            "Casual matches record nothing.", 0.19f,
+            {w * 0.50f, h * 0.71f}, {195,215,245});
+        auto* menu = CCMenu::create();
+        menu->setPosition({0,0});
+        menu->addChild(VersusUI::button("CASUAL", this, menu_selector(LobbyLayer::onQueueCasual),
+            {w * 0.27f, h * 0.665f}, "GJ_button_04.png", 0.42f));
+        menu->addChild(VersusUI::button("RANKED", this, menu_selector(LobbyLayer::onQueueRanked),
+            {w * 0.73f, h * 0.665f}, "GJ_button_02.png", 0.42f));
+
+        // ---- difficulty band ----------------------------------------------------
+        VersusUI::label(m_page, "DIFFICULTY BAND", 0.24f, {w * 0.50f, h * 0.585f}, {125,190,240});
+        uint8_t tier = VersusLobby::difficultyTier();
+        char const* tierName = "ANY";
+        if (tier > 0 && tier <= VersusModes::kDifficultyCount) {
+            tierName = VersusModes::kDifficulties[tier - 1].name;
+        }
+        VersusUI::label(m_page, tierName, 0.36f, {w * 0.50f, h * 0.525f}, {255,225,135});
+        menu->addChild(VersusUI::button("<", this, menu_selector(LobbyLayer::onTierPrev),
+            {w * 0.27f, h * 0.525f}, "GJ_button_01.png", 0.46f));
+        menu->addChild(VersusUI::button(">", this, menu_selector(LobbyLayer::onTierNext),
+            {w * 0.73f, h * 0.525f}, "GJ_button_01.png", 0.46f));
+        m_page->addChild(menu, 5);
+
+        // ---- room preferences and suggestions -----------------------------------
+        VersusUI::addCard(m_page, {w * 0.50f, h * 0.30f}, {w * 0.88f, h * 0.30f}, {18, 42, 91, 255});
+        float y = h * 0.40f;
+        std::vector<VersusMatchmaking::QueuePlayer> queue;
+        auto players = VersusLobby::players();
+        for (auto const& p : players) {
+            queue.push_back({p.accountId, p.queueType, p.difficultyTier});
+        }
+        auto self = VersusLobby::localAccountId();
+        queue.push_back({self, VersusLobby::queueType(), VersusLobby::difficultyTier()});
+
+        auto suggestions = VersusMatchmaking::suggestPairings(queue);
+        if (suggestions.empty()) {
+            VersusUI::label(m_page, "NO SUGGESTED PAIRING YET", 0.24f,
+                {w * 0.50f, y}, {255,205,140});
+            VersusUI::label(m_page, "Pairings appear when two players want the same queue.", 0.18f,
+                {w * 0.50f, y - 22.f}, {195,215,245});
+        } else {
+            for (auto const& sug : suggestions) {
+                if (sug.a != self && sug.b != self) continue; // show your own pairing
+                int other = sug.a == self ? sug.b : sug.a;
+                VersusUI::label(m_page,
+                    fmt::format("SUGGESTED MATCH: PLAYER {}  ({})", other,
+                        sug.crossTier ? "NEARBY BAND" : "SAME BAND").c_str(),
+                    0.24f, {w * 0.50f, y}, {150,235,180});
+                y -= 22.f;
+            }
+        }
+        VersusUI::label(m_page,
+            "The host launches matches from MATCH SETUP — this page only sets preferences.",
+            0.17f, {w * 0.50f, h * 0.175f}, {175,195,225});
+        VersusUI::label(m_page,
+            "Room-scoped matchmaking only. Global queues need an upstream Globed feature.",
+            0.16f, {w * 0.50f, h * 0.14f}, {150,175,210});
+
+        auto* back = CCMenu::create();
+        back->setPosition({0,0});
+        back->addChild(VersusUI::button("BACK TO LOBBY", this, menu_selector(LobbyLayer::onJoinLobby),
+            {w * 0.50f, 34.f}, "GJ_button_01.png", 0.42f));
+        m_page->addChild(back, 5);
+    }
+
+    void LobbyLayer::onQueueCasual(CCObject*) {
+        VersusLobby::setQueue(0, VersusLobby::difficultyTier());
+        showMatchmaking();
+    }
+
+    void LobbyLayer::onQueueRanked(CCObject*) {
+        VersusLobby::setQueue(1, VersusLobby::difficultyTier());
+        showMatchmaking();
+    }
+
+    void LobbyLayer::onTierPrev(CCObject*) {
+        uint8_t tier = VersusLobby::difficultyTier();
+        if (tier > 0) VersusLobby::setQueue(VersusLobby::queueType(), tier - 1);
+        showMatchmaking();
+    }
+
+    void LobbyLayer::onTierNext(CCObject*) {
+        uint8_t tier = VersusLobby::difficultyTier();
+        if (tier < VersusModes::kDifficultyCount) {
+            VersusLobby::setQueue(VersusLobby::queueType(), tier + 1);
+        }
+        showMatchmaking();
+    }
+
+    void LobbyLayer::onOpenMatchmaking(CCObject*) {
+        if (!VersusLobby::joined()) {
+            showGroupRooms();
+            return;
+        }
+        showMatchmaking();
     }
 
     void LobbyLayer::onJoinLobby(CCObject*) {
