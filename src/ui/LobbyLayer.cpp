@@ -73,12 +73,23 @@ namespace Versus {
         CCLayer::update(dt);
         // The lobby transport itself runs from the SessionDriver, which
         // keeps it alive inside levels; here we only refresh the open page.
-        // Keep the lobby screen live while it is open.
-        if (s_screen == Screen::Lobby && VersusLobby::joined()) {
+        // Show the results screen as soon as a match resolves.
+        if (VersusLobby::phase() == VersusLobby::MatchPhase::Results &&
+            s_screen != Screen::Results && VersusLobby::joined()) {
+            showResults();
+        }
+        // Keep the lobby and results screens live while they are open.
+        if ((s_screen == Screen::Lobby || s_screen == Screen::Results) && VersusLobby::joined()) {
             m_lobbyRefresh += dt;
             if (m_lobbyRefresh >= 2.f) {
                 m_lobbyRefresh = 0.f;
-                showRoomLobby();
+                if (s_screen == Screen::Results && VersusLobby::phase() != VersusLobby::MatchPhase::Results) {
+                    showRoomLobby();
+                } else if (s_screen == Screen::Results) {
+                    showResults();
+                } else {
+                    showRoomLobby();
+                }
             }
         } else {
             m_lobbyRefresh = 0.f;
