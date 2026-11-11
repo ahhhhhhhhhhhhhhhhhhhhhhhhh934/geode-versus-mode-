@@ -7,7 +7,7 @@
   "name": "Versus Mode",
   "version": "v1.0.0",
   "developer": "Versus Mode Team",
-  "description": "Geometry Dash Versus competition hub. Requires Globed 2.3.0 beta or newer.",
+  "description": "Geometry Dash Versus competition hub. Uses Globed 2.3.0 beta or newer for multiplayer networking and rooms.",
   "tags": [
     "gameplay",
     "online",
@@ -17,20 +17,6 @@
     "dankmeme.globed2": {
       "version": ">=2.3.0-beta.1",
       "required": true
-    }
-  },
-  "settings": {
-    "matchmaking-url": {
-      "type": "string",
-      "name": "Supabase Matchmaking Function URL",
-      "description": "Base URL ending in /functions/v1/versus-matchmaking. Never enter a service-role key here.",
-      "default": ""
-    },
-    "matchmaking-anon-key": {
-      "type": "string",
-      "name": "Supabase Project Anon Key",
-      "description": "Public anon/publishable key for your Supabase project. Do not use the service-role key.",
-      "default": ""
     }
   }
 }
