@@ -50,6 +50,18 @@ Versus Mode should feel like a complete Geometry Dash competition hub: fast to e
 - [ ] Achievements, titles, badges, and unlockable profile cosmetics.
 - [ ] Local practice statistics clearly separated from verified online records.
 
+### Leaderboard and competitive integrity
+- [ ] Global leaderboard with verified player identity, rank points, wins, losses, win rate, streak, and per-mode filters; show season and region filters only when the data source supports them.
+- [ ] Never populate the online leaderboard with local-only rank values, fabricated players, placeholder scores, or unverified match results.
+- [ ] Add a versioned match-integrity protocol using Globed networking: match ID, participant IDs, level ID, mode/rules hash, start sequence, event sequence numbers, and result acknowledgement.
+- [ ] Validate results against authoritative match rules and server-observed state where available; clients must not be able to award themselves rank by sending a completion claim.
+- [ ] Detect impossible or inconsistent gameplay claims (for example, invalid event ordering, impossible completion state, modified match rules, replayed result packets, or conflicting player/session identity).
+- [ ] On confirmed cheating during a match, immediately remove the offending player from that match, mark the match result invalid, and prevent the invalid result from changing either player's rating. Notify the player with a clear reason.
+- [ ] Treat latency, packet loss, desync, reconnects, and unusual-but-legal play as non-cheating until independently validated; use evidence thresholds and retain a diagnostic reason for review.
+- [ ] Add match-integrity logs and an appeal/review path before applying account-wide penalties. A match kick is separate from a long-term account sanction.
+- [ ] Do not claim cheat detection or leaderboard functionality is live until a trusted authority exists in the Globed-compatible protocol and two Android clients pass end-to-end tests.
+- [ ] The current leaderboard page is a navigation/UI placeholder only; it intentionally shows no fabricated player rows.
+
 ## Social and community
 
 - [ ] Party invites and private friend matches.
