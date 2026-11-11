@@ -20,3 +20,7 @@ Version target: **v1.0.0** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Androi
 Globed provides multiplayer networking and room infrastructure, but it does not automatically provide Versus Mode's custom cross-room matchmaking queue, ready-check, mode rules, or authoritative results. Those features must be implemented as a Globed-native protocol before they can be advertised as working. This release does not require external Supabase configuration and does not claim a global automatic queue is live.
 
 The room/session handoff and synchronized gameplay rules still require runtime validation on Android with Globed 2.3.0 beta or newer.
+
+## Development
+
+The complete feature plan and release gates are tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md).
