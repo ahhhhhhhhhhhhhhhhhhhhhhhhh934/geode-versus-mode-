@@ -3,6 +3,8 @@ project(VersusMode VERSION 1.0.2)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
+    src/ui/LobbyLayer.cpp
+    src/ui/RoomPages.cpp
 )
 
 # Geode's CLI provides GEODE_SDK when building with geode build.
