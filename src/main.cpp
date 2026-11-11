@@ -284,29 +284,58 @@ namespace Versus {
             return item;
         }
 
+        // Geometry Dash Level Complete-inspired presentation:
+        // darkened backdrop, warm gold frame, bright completion header,
+        // and the game's own ButtonSprite artwork for every action.
         void basePage(char const* title, char const* subtitle) {
             clearPage();
             m_size = CCDirector::sharedDirector()->getWinSize();
             m_page = CCLayer::create();
             this->addChild(m_page, 1);
 
-            auto* shade = CCLayerColor::create({7, 12, 31, 245});
+            auto* shade = CCLayerColor::create({13, 17, 35, 250});
             m_page->addChild(shade, -5);
-            auto* glow = CCLayerColor::create({28, 70, 132, 130}, m_size.width, 4.f);
-            glow->setPosition({0.f, m_size.height - 5.f});
-            m_page->addChild(glow, -4);
+            auto* topGlow = CCLayerColor::create({73, 47, 22, 255}, m_size.width, 5.f);
+            topGlow->setPosition({0.f, m_size.height - 5.f});
+            m_page->addChild(topGlow, -4);
+            auto* bottomGlow = CCLayerColor::create({73, 47, 22, 255}, m_size.width, 4.f);
+            bottomGlow->setPosition({0.f, 0.f});
+            m_page->addChild(bottomGlow, -4);
 
-            label(title, 0.78f, {m_size.width/2, m_size.height - 42.f}, {255,224,110});
-            label(subtitle, 0.34f, {m_size.width/2, m_size.height - 70.f}, {185,210,245});
+            // A gold-trimmed title plate echoes the celebratory completion panel.
+            auto* titlePlate = CCLayerColor::create({36, 48, 75, 255},
+                m_size.width * 0.92f, 54.f);
+            titlePlate->setPosition({m_size.width * 0.04f, m_size.height - 88.f});
+            m_page->addChild(titlePlate, -1);
+            auto* titleTop = CCLayerColor::create({255, 204, 83, 255},
+                m_size.width * 0.92f, 3.f);
+            titleTop->setPosition({0.f, 51.f});
+            titlePlate->addChild(titleTop, 1);
+            auto* titleBottom = CCLayerColor::create({173, 111, 40, 255},
+                m_size.width * 0.92f, 2.f);
+            titlePlate->addChild(titleBottom, 1);
+
+            label(title, 0.72f, {m_size.width/2, m_size.height - 55.f}, {255,224,125});
+            label(subtitle, 0.29f, {m_size.width/2, m_size.height - 75.f}, {224,232,248});
         }
 
         void addCard(CCPoint center, CCSize size, ccColor4B tint) {
+            auto* shadow = CCLayerColor::create({0, 0, 0, 105}, size.width + 6.f, size.height + 6.f);
+            shadow->setPosition({center.x-size.width/2.f+3.f, center.y-size.height/2.f-4.f});
+            m_page->addChild(shadow, -1);
+
+            auto* frame = CCLayerColor::create({196, 139, 57, 255}, size.width + 4.f, size.height + 4.f);
+            frame->setPosition({center.x-size.width/2.f-2.f, center.y-size.height/2.f-2.f});
+            m_page->addChild(frame, 0);
+
             auto* card = CCLayerColor::create(tint, size.width, size.height);
-            card->setPosition({center.x-size.width/2, center.y-size.height/2});
-            m_page->addChild(card, 0);
-            auto* edge = CCLayerColor::create({100,190,255,255}, size.width, 2.f);
+            card->setPosition({center.x-size.width/2.f, center.y-size.height/2.f});
+            m_page->addChild(card, 1);
+            auto* edge = CCLayerColor::create({255, 220, 128, 255}, size.width, 2.f);
             edge->setPosition({0.f,size.height-2.f});
-            card->addChild(edge, 1);
+            card->addChild(edge, 2);
+            auto* lowerEdge = CCLayerColor::create({112, 73, 35, 255}, size.width, 2.f);
+            card->addChild(lowerEdge, 2);
         }
 
         void showHome() {
@@ -474,10 +503,44 @@ namespace Versus {
 
         void showGroupRooms() {
             s_screen = Screen::GroupRooms;
-            showInfo("GROUP ROOMS", "PLAY WITH MORE PEOPLE",
-                "GROUP MATCHMAKING NOT CONNECTED",
-                "The room interface is planned, but no Versus group-room server exists yet.",
-                "Globed room data alone is not a Versus group match.");
+            basePage("PRIVATE VERSUS", "PLAY WITH YOUR FRIENDS");
+            auto w = m_size.width;
+            auto h = m_size.height;
+            auto mid = h * 0.56f;
+            addCard({w * 0.50f, mid}, {w * 0.86f, h * 0.34f}, {42, 58, 91, 255});
+
+            bool connected = globedLoaded() && globedApiAvailable() && globedConnected();
+            bool inRoom = connected && globedInRoom();
+            if (inRoom) {
+                label("GLOBED ROOM DETECTED", 0.37f,
+                    {w * 0.50f, mid + h * 0.105f}, {145,255,175});
+                auto roomText = fmt::format("ROOM ID  {}", globedRoomId());
+                label(roomText.c_str(), 0.32f,
+                    {w * 0.50f, mid + h * 0.035f}, {255,225,135});
+                label("Your friends must join this same Globed room.", 0.25f,
+                    {w * 0.50f, mid - h * 0.035f}, {235,240,250});
+                label("Make the Globed room private or invite-only there.", 0.23f,
+                    {w * 0.50f, mid - h * 0.095f}, {195,215,245});
+            } else {
+                label(connected ? "NO ROOM JOINED" : "CONNECT TO GLOBED FIRST", 0.37f,
+                    {w * 0.50f, mid + h * 0.105f}, {255,220,125});
+                label("Create or join a private room in Globed.", 0.27f,
+                    {w * 0.50f, mid + h * 0.035f}, {235,240,250});
+                label("Then return here to set up a Versus match.", 0.24f,
+                    {w * 0.50f, mid - h * 0.035f}, {195,215,245});
+                label("Room creation is handled by Globed, not a fake local room.", 0.20f,
+                    {w * 0.50f, mid - h * 0.095f}, {175,195,225});
+            }
+
+            auto* menu = CCMenu::create();
+            menu->setPosition({0,0});
+            menu->addChild(button("REFRESH ROOM", menu_selector(LobbyLayer::onGroupRooms),
+                {w * 0.28f, 48.f}, "GJ_button_05.png", 0.44f));
+            menu->addChild(button("ROOM STATUS", menu_selector(LobbyLayer::onRooms),
+                {w * 0.72f, 48.f}, "GJ_button_04.png", 0.44f));
+            menu->addChild(button("PLAZA", menu_selector(LobbyLayer::onOpenPlaza),
+                {w * 0.50f, 20.f}, "GJ_button_01.png", 0.36f));
+            m_page->addChild(menu, 5);
         }
 
         void showLive() {
