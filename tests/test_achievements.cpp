@@ -30,6 +30,10 @@ int main() {
     history.push_back({5, 5, 104, 26, Outcome::Loss, -15, 3, 420});
     history.push_back({6, 1, 105, 27, Outcome::Draw, 0, 2, 800});
     history.push_back({7, 6, 106, 28, Outcome::Unrecorded, 0, 0, 0});
+    history.push_back({8, 1, 107, 29, Outcome::Loss, -15, 1, 500});
+    history.push_back({9, 2, 108, 30, Outcome::Loss, -15, 1, 500});
+    history.push_back({10, 3, 109, 31, Outcome::Loss, -15, 1, 500});
+    history.push_back({11, 4, 110, 32, Outcome::Loss, -15, 1, 500});
     auto stillSix = evaluate(history);
     assert(stillSix[2].unlocked);
     assert(unlockedCount(stillSix) == 6);
