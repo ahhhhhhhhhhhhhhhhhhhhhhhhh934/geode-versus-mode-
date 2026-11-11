@@ -1,5 +1,6 @@
 #include "LobbyLayer.hpp"
 #include "../core/GameModes.hpp"
+#include "../core/Protocol.hpp"
 
 // Pages that describe the room / network state. These screens never invent
 // data: every line comes from Globed's Soft Link API or states plainly that
@@ -130,6 +131,17 @@ namespace Versus {
         VersusUI::label(m_page, fmt::format("MODE: {}", VersusModes::name(VersusLobby::mode())).c_str(),
             0.26f, {m_size.width * 0.50f, m_size.height - 108.f}, {145,220,255});
 
+        // ---- match alerts (toasts) -------------------------------------------
+        {
+            auto live = VersusLobby::alerts();
+            float ty = m_size.height - 132.f;
+            for (auto it = live.rbegin(); it != live.rend() && ty > h * 0.80f; ++it) {
+                VersusUI::label(m_page, it->text.c_str(), 0.19f,
+                    {w * 0.50f, ty}, {255, 205, 130});
+                ty -= 20.f;
+            }
+        }
+
         int host = VersusLobby::hostAccountId();
         bool hostKnown = host != 0;
 
@@ -187,6 +199,9 @@ namespace Versus {
             if (seconds < 0) seconds = 0;
             VersusUI::label(m_page, fmt::format("MATCH STARTING IN {}", seconds).c_str(),
                 0.40f, {w * 0.50f, h * 0.24f}, {255,120,120});
+        } else if (VersusLobby::phase() == VersusLobby::MatchPhase::InGame) {
+            VersusUI::label(m_page, "MATCH IN PROGRESS — PLAY THE LEVEL",
+                0.28f, {w * 0.50f, h * 0.24f}, {255,160,120});
         } else {
             size_t readyCount = 0;
             for (auto const& p : players) if (p.ready) ++readyCount;
@@ -204,7 +219,12 @@ namespace Versus {
             {w * 0.27f, h * 0.13f}, "GJ_button_04.png", 0.46f));
         menu->addChild(VersusUI::button("CHOOSE MODE", this, menu_selector(LobbyLayer::onOpenModeSelect),
             {w * 0.73f, h * 0.13f}, "GJ_button_02.png", 0.46f));
-        if (VersusLobby::isHost()) {
+        bool matchActive = VersusLobby::phase() == VersusLobby::MatchPhase::Countdown ||
+            VersusLobby::phase() == VersusLobby::MatchPhase::InGame;
+        if (VersusLobby::isHost() && matchActive) {
+            menu->addChild(VersusUI::button("CANCEL MATCH", this, menu_selector(LobbyLayer::onHostCancelMatch),
+                {w * 0.50f, h * 0.24f}, "GJ_button_06.png", 0.40f));
+        } else if (VersusLobby::isHost()) {
             menu->addChild(VersusUI::button("MATCH SETUP", this, menu_selector(LobbyLayer::onOpenMatchSetup),
                 {w * 0.50f, h * 0.24f}, "GJ_button_05.png", 0.40f));
         }
@@ -236,6 +256,11 @@ namespace Versus {
 
     void LobbyLayer::onToggleReady(CCObject*) {
         VersusLobby::setReady(!VersusLobby::ready());
+        showRoomLobby();
+    }
+
+    void LobbyLayer::onHostCancelMatch(CCObject*) {
+        VersusLobby::cancelMatch(VersusProto::CancelReason::HostCancelled);
         showRoomLobby();
     }
 

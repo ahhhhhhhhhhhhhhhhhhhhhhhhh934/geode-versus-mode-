@@ -87,6 +87,8 @@ namespace VersusProto {
         uint32_t deaths = 0;
         uint8_t flags = 0;
         uint32_t timeMs = 0;
+        // cancel fields
+        uint8_t reason = 0;
         // results fields
         uint8_t verdict = 0;
         int32_t winner = 0;
@@ -268,6 +270,7 @@ namespace VersusProto {
                 break;
             case Action::Cancel:
                 d.matchId = getU32(bytes, kHeaderSize);
+                d.reason = bytes[kHeaderSize + 4];
                 break;
             case Action::Progress:
                 d.matchId = getU32(bytes, kHeaderSize);
