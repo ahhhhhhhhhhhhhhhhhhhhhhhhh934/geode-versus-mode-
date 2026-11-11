@@ -5,6 +5,7 @@ add_library(${PROJECT_NAME} SHARED
     src/main.cpp
     src/ui/LobbyLayer.cpp
     src/ui/RoomPages.cpp
+    src/ui/MatchPages.cpp
 )
 
 # Geode's CLI provides GEODE_SDK when building with geode build.
