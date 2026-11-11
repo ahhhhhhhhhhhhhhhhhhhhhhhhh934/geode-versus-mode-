@@ -26,22 +26,12 @@ namespace Versus {
         bool connected = globedLoaded() && globedApiAvailable() && globedConnected();
         bool inRoom = connected && globedInRoom();
         if (inRoom) {
-            uint32_t code = Versus::globedApiAvailable() ? globed::api::room::getPasscode() : 0;
             VersusUI::label(m_page, "GLOBED ROOM DETECTED", 0.34f,
                 {w * 0.50f, mid + h * 0.115f}, {145,255,175});
-            if (code != 0) {
-                VersusUI::label(m_page, fmt::format("LOBBY CODE  {}", code).c_str(), 0.38f,
-                    {w * 0.50f, mid + h * 0.05f}, {255,225,135});
-                VersusUI::label(m_page, "Share this code — friends find the room in Globed's", 0.21f,
-                    {w * 0.50f, mid - h * 0.01f}, {235,240,250});
-                VersusUI::label(m_page, "room browser and enter the code when asked.", 0.21f,
-                    {w * 0.50f, mid - h * 0.05f}, {235,240,250});
-            } else {
-                VersusUI::label(m_page, fmt::format("ROOM ID  {}", globedRoomId()).c_str(), 0.32f,
-                    {w * 0.50f, mid + h * 0.05f}, {255,225,135});
-                VersusUI::label(m_page, "This room has no passcode code yet.", 0.23f,
-                    {w * 0.50f, mid - h * 0.01f}, {235,240,250});
-            }
+            VersusUI::label(m_page, fmt::format("ROOM ID  {}", globedRoomId()).c_str(), 0.32f,
+                {w * 0.50f, mid + h * 0.035f}, {255,225,135});
+            VersusUI::label(m_page, "Open the Versus lobby to find players in this room.", 0.23f,
+                {w * 0.50f, mid - h * 0.025f}, {235,240,250});
             VersusUI::label(m_page, "Make the Globed room private or invite-only there.", 0.20f,
                 {w * 0.50f, mid - h * 0.095f}, {195,215,245});
         } else {
@@ -133,11 +123,8 @@ namespace Versus {
             return;
         }
 
-        uint32_t passcode = Versus::globedApiAvailable() ? globed::api::room::getPasscode() : 0;
-        std::string codeLine = passcode != 0
-            ? fmt::format("ROOM {}  •  CODE {}", VersusLobby::roomId(), passcode)
-            : fmt::format("ROOM {}", VersusLobby::roomId());
-        basePage("VERSUS LOBBY", codeLine.c_str());
+        auto roomLine = fmt::format("GLOBED ROOM  {}", VersusLobby::roomId());
+        basePage("VERSUS LOBBY", roomLine.c_str());
         VersusUI::label(m_page, fmt::format("MODE: {}", VersusModes::name(VersusLobby::mode())).c_str(),
             0.26f, {m_size.width * 0.50f, m_size.height - 108.f}, {145,220,255});
 
@@ -254,8 +241,6 @@ namespace Versus {
             menu->addChild(VersusUI::button("MATCH SETUP", this, menu_selector(LobbyLayer::onOpenMatchSetup),
                 {w * 0.50f, h * 0.24f}, "GJ_button_05.png", 0.40f));
         }
-        menu->addChild(VersusUI::button("SHARE CODE", this, menu_selector(LobbyLayer::onShareCode),
-            {w * 0.27f, h * 0.055f}, "GJ_button_03.png", 0.36f));
         menu->addChild(VersusUI::button("LEAVE LOBBY", this, menu_selector(LobbyLayer::onLeaveLobby),
             {w * 0.73f, h * 0.055f}, "GJ_button_01.png", 0.36f));
         menu->addChild(VersusUI::button("PLAZA", this, menu_selector(LobbyLayer::onOpenPlaza),
