@@ -263,22 +263,34 @@ namespace Versus {
 
     void LobbyLayer::showRanked() {
         s_screen = Screen::Ranked;
-        basePage("RANKED", "GEOMETRY DASH DIFFICULTY LADDER");
+        basePage("RANKED", "SEASONS  •  DIVISIONS  •  CHALLENGES");
         auto w = m_size.width;
         auto h = m_size.height;
+        // Grant any newly completed ranked challenges (bonus points only).
+        int granted = VersusStats::grantChallengeBonuses(VersusStats::nowUnix());
         int points = rankPoints();
+        auto season = VersusProgression::seasonAt(VersusStats::nowUnix());
+        auto* division = VersusProgression::divisionForTier(static_cast<int>(rankTierIndex(points)));
         VersusUI::addCard(m_page, {w * 0.50f, h * 0.83f}, {w * 0.88f, h * 0.16f}, {16, 39, 75, 250});
         VersusUI::label(m_page, fmt::format("{}  •  {} RP", rankName(points), points).c_str(),
-            0.34f, {w * 0.50f, h * 0.85f}, {255,224,110});
-        VersusUI::label(m_page, "Local ladder preview — online rating is not synced yet", 0.21f,
-            {w * 0.50f, h * 0.80f}, {185,210,245});
+            0.34f, {w * 0.50f, h * 0.86f}, {255,224,110});
+        VersusUI::label(m_page,
+            fmt::format("SEASON {}  •  {} DAYS LEFT  •  DIVISION {}",
+                season.number, season.daysRemaining, division ? division->name : "—").c_str(),
+            0.20f, {w * 0.50f, h * 0.805f}, {185,210,245});
+        VersusUI::label(m_page,
+            granted > 0
+                ? fmt::format("CHALLENGE BONUS  +{} RP  APPLIED", granted).c_str()
+                : "Local ladder — online rating is not synced yet",
+            0.19f, {w * 0.50f, h * 0.775f},
+            granted > 0 ? ccColor3B{120,255,150} : ccColor3B{165,195,235});
 
         auto count = rankTierCount();
         for (size_t i = 0; i < count; ++i) {
             auto column = i % 2;
             auto row = i / 2;
             float x = column == 0 ? w * 0.27f : w * 0.73f;
-            float y = h * 0.68f - static_cast<float>(row) * h * 0.085f;
+            float y = h * 0.66f - static_cast<float>(row) * h * 0.075f;
             auto const& tier = kRankTiers[i];
             bool active = points >= tier.minimumPoints &&
                 (i + 1 == count || points < kRankTiers[i + 1].minimumPoints);
@@ -302,6 +314,25 @@ namespace Versus {
             VersusUI::label(m_page, fmt::format("{} RP", tier.minimumPoints).c_str(),
                 0.16f, {x + w * 0.035f, y - h * 0.022f}, {185,205,230});
         }
+
+        // Ranked challenges: objectives that pay bonus points only. Never
+        // stakes, wagers, or lost points. Progress is computed from the
+        // recorded local match history.
+        auto progress = VersusProgression::evaluateChallenges(
+            VersusStats::history(), VersusStats::nowUnix());
+        float cy = h * 0.215f;
+        for (auto const& p : progress) {
+            auto const& c = *p.challenge;
+            VersusUI::label(m_page,
+                fmt::format("{}  {}/{}  +{} RP",
+                    c.title, p.wins < c.targetWins ? p.wins : c.targetWins,
+                    c.targetWins, c.bonusPoints).c_str(),
+                0.19f, {w * 0.50f, cy}, p.complete ? ccColor3B{120,255,150} : ccColor3B{220,230,245});
+            cy -= h * 0.048f;
+        }
+        VersusUI::label(m_page,
+            "Seasons and challenges are local until a Versus service exists; "
+            "no wagers, no lost points.", 0.16f, {w * 0.50f, cy - 2.f}, {150,175,210});
 
         auto* menu = CCMenu::create();
         menu->setPosition({0,0});

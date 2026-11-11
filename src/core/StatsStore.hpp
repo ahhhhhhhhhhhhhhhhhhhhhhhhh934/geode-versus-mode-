@@ -9,6 +9,7 @@
 
 #include <Geode/Geode.hpp>
 #include "MatchLogic.hpp"
+#include "Progression.hpp"
 
 #include <string>
 #include <vector>
@@ -104,6 +105,25 @@ namespace VersusStats {
             }
         }
         return s;
+    }
+
+    // Grant bonus rank points for newly completed ranked challenges.
+    // Challenges are objectives with bonus points only — never stakes,
+    // wagers, or lost points. Each challenge grants once per time window.
+    inline int grantChallengeBonuses(int64_t now) {
+        auto progress = VersusProgression::evaluateChallenges(history(), now);
+        int granted = 0;
+        for (auto const& p : progress) {
+            if (!p.complete) continue;
+            int64_t windowStart = p.challenge->daily
+                ? VersusProgression::dayFloor(now) : VersusProgression::weekFloor(now);
+            std::string key = fmt::format("challenge-granted-{}-{}", p.challenge->id, windowStart);
+            if (Mod::get()->getSavedValue<bool>(key, false)) continue;
+            Mod::get()->setSavedValue(key, true);
+            granted += p.challenge->bonusPoints;
+        }
+        if (granted > 0) applyRankDelta(granted);
+        return granted;
     }
 
     inline int winRatePercent(PlayerStats const& s) {
