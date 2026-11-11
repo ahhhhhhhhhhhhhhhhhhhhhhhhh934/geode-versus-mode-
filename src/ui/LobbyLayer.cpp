@@ -1,4 +1,6 @@
 #include "LobbyLayer.hpp"
+#include "../core/Achievements.hpp"
+#include "../core/StatsStore.hpp"
 
 namespace Versus {
     LobbyLayer::RankTier const LobbyLayer::kRankTiers[] = {
@@ -352,8 +354,20 @@ namespace Versus {
             0.32f, {w * 0.50f, h * 0.65f}, {145,220,255});
         VersusUI::label(m_page, fmt::format("{} RANK POINTS", rankPoints()).c_str(),
             0.27f, {w * 0.50f, h * 0.56f}, {225,235,250});
-        VersusUI::label(m_page, "Online profiles, records and statistics need the Versus server.", 0.22f,
-            {w * 0.50f, h * 0.46f}, {180,205,235});
+        auto achievements = VersusAchievements::evaluate(VersusStats::history());
+        auto unlocked = VersusAchievements::unlockedCount(achievements);
+        VersusUI::label(m_page, fmt::format("LOCAL ACHIEVEMENTS  {}/{}", unlocked, achievements.size()).c_str(),
+            0.25f, {w * 0.50f, h * 0.46f}, {255,224,125});
+        for (size_t i = 0; i < 3; ++i) {
+            auto const& achievement = achievements[i];
+            auto line = fmt::format("{}  {}", achievement.unlocked ? "[UNLOCKED]" : "[LOCKED]",
+                achievement.title);
+            VersusUI::label(m_page, line.c_str(), 0.20f,
+                {w * 0.50f, h * (0.405f - 0.045f * static_cast<float>(i))},
+                achievement.unlocked ? ccColor3B{125,245,165} : ccColor3B{175,195,225});
+        }
+        VersusUI::label(m_page, "Achievements are calculated from this device's match history.", 0.17f,
+            {w * 0.50f, h * 0.255f}, {160,185,215});
         auto* menu = CCMenu::create();
         menu->setPosition({0,0});
         menu->addChild(VersusUI::button("RANKS", this, menu_selector(LobbyLayer::onRanked),
