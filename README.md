@@ -26,3 +26,9 @@ No Cloudflare Worker, Render service, or separate gameplay server is used.
 ## Configure matchmaking
 
 Follow [backend/README.md](backend/README.md) to deploy Supabase. Set the Geode setting **Supabase Matchmaking Function URL** to the deployed Edge Function URL ending in `/functions/v1/versus-matchmaking`.
+
+## Private rooms, level launching, and publishing
+
+The implementation plan for private friend rooms, a level-picker button, and public distribution is documented in [docs/PRIVATE_ROOMS_LEVEL_LAUNCH_AND_PUBLISHING.md](docs/PRIVATE_ROOMS_LEVEL_LAUNCH_AND_PUBLISHING.md).
+
+Globed already provides private rooms and invites, so Versus Mode should reuse those rather than create a separate room backend. The new Versus private-room flow and level-launch button are not yet implemented or verified. The intended distribution target is the **Geode Index**; this repository is not configured as a Steam Workshop project.
