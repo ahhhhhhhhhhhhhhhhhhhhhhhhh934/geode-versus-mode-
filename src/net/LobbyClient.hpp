@@ -5,6 +5,7 @@
 #include <globed/core/data/Messages.hpp>
 #include <globed/core/net/MessageListener.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
+#include "../core/GameModes.hpp"
 #include "../core/Protocol.hpp"
 #include "GlobedClient.hpp"
 
@@ -72,6 +73,13 @@ namespace VersusLobby {
 
     // connection bookkeeping for reconnection
     inline bool s_wasConnected = false;
+
+    // local player state during a match
+    inline uint32_t s_localDeaths = 0;
+    inline bool s_localFinished = false;
+    inline bool s_localEliminated = false;
+    inline float s_matchStartClock = 0.f;
+    inline float s_progressTimer = 0.f;
 
     inline int localAccountId() {
         auto* am = GJAccountManager::sharedState();
@@ -268,6 +276,53 @@ namespace VersusLobby {
         s_phase = MatchPhase::None;
         s_countdown = 0.f;
         s_resultsRecorded = false;
+    }
+
+    // ---- local play tracking -------------------------------------------------
+
+    inline uint32_t elapsedMatchMs() {
+        return s_phase == MatchPhase::InGame
+            ? static_cast<uint32_t>((s_clock - s_matchStartClock) * 1000.f) : 0u;
+    }
+
+    // Called when the level starts for a match level.
+    inline void beginLocalPlay() {
+        s_localDeaths = 0;
+        s_localFinished = false;
+        s_localEliminated = false;
+        s_progressTimer = 0.f;
+        s_matchStartClock = s_clock;
+    }
+
+    inline uint8_t localProgressFlags() {
+        uint8_t flags = 0;
+        if (s_localEliminated) flags |= VersusProto::kFlagEliminated;
+        if (s_localFinished) flags |= VersusProto::kFlagFinished;
+        return flags;
+    }
+
+    inline void reportLocalDeath(uint16_t percentX10) {
+        if (s_phase != MatchPhase::InGame) return;
+        s_localDeaths++;
+        // Survival eliminates on death; other modes only cost time.
+        if (auto* mode = VersusModes::find(s_mode); mode && mode->elimination) {
+            s_localEliminated = true;
+        }
+        sendProgress(percentX10, s_localDeaths,
+            VersusProto::kFlagDead | localProgressFlags());
+    }
+
+    inline void reportLocalProgress(uint16_t percentX10) {
+        if (s_phase != MatchPhase::InGame || s_localFinished) return;
+        sendProgress(percentX10, s_localDeaths, localProgressFlags());
+    }
+
+    inline void reportLocalFinish() {
+        if (s_phase != MatchPhase::InGame || s_localFinished) return;
+        s_localFinished = true;
+        // 1000 == 100.0 percent, x10 encoding.
+        send(VersusProto::encodeFinish(s_roomId, s_matchId, elapsedMatchMs(),
+            s_localDeaths, 1000));
     }
 
     // ---- match lifecycle -----------------------------------------------------
