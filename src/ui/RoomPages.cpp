@@ -25,14 +25,23 @@ namespace Versus {
         bool connected = globedLoaded() && globedApiAvailable() && globedConnected();
         bool inRoom = connected && globedInRoom();
         if (inRoom) {
-            VersusUI::label(m_page, "GLOBED ROOM DETECTED", 0.37f,
-                {w * 0.50f, mid + h * 0.105f}, {145,255,175});
-            auto roomText = fmt::format("ROOM ID  {}", globedRoomId());
-            VersusUI::label(m_page, roomText.c_str(), 0.32f,
-                {w * 0.50f, mid + h * 0.035f}, {255,225,135});
-            VersusUI::label(m_page, "Your friends must join this same Globed room.", 0.25f,
-                {w * 0.50f, mid - h * 0.035f}, {235,240,250});
-            VersusUI::label(m_page, "Make the Globed room private or invite-only there.", 0.23f,
+            uint32_t code = Versus::globedApiAvailable() ? globed::api::room::getPasscode() : 0;
+            VersusUI::label(m_page, "GLOBED ROOM DETECTED", 0.34f,
+                {w * 0.50f, mid + h * 0.115f}, {145,255,175});
+            if (code != 0) {
+                VersusUI::label(m_page, fmt::format("LOBBY CODE  {}", code).c_str(), 0.38f,
+                    {w * 0.50f, mid + h * 0.05f}, {255,225,135});
+                VersusUI::label(m_page, "Share this code — friends find the room in Globed's", 0.21f,
+                    {w * 0.50f, mid - h * 0.01f}, {235,240,250});
+                VersusUI::label(m_page, "room browser and enter the code when asked.", 0.21f,
+                    {w * 0.50f, mid - h * 0.05f}, {235,240,250});
+            } else {
+                VersusUI::label(m_page, fmt::format("ROOM ID  {}", globedRoomId()).c_str(), 0.32f,
+                    {w * 0.50f, mid + h * 0.05f}, {255,225,135});
+                VersusUI::label(m_page, "This room has no passcode code yet.", 0.23f,
+                    {w * 0.50f, mid - h * 0.01f}, {235,240,250});
+            }
+            VersusUI::label(m_page, "Make the Globed room private or invite-only there.", 0.20f,
                 {w * 0.50f, mid - h * 0.095f}, {195,215,245});
         } else {
             VersusUI::label(m_page, connected ? "NO ROOM JOINED" : "CONNECT TO GLOBED FIRST", 0.37f,
@@ -242,8 +251,10 @@ namespace Versus {
             menu->addChild(VersusUI::button("MATCH SETUP", this, menu_selector(LobbyLayer::onOpenMatchSetup),
                 {w * 0.50f, h * 0.24f}, "GJ_button_05.png", 0.40f));
         }
+        menu->addChild(VersusUI::button("SHARE CODE", this, menu_selector(LobbyLayer::onShareCode),
+            {w * 0.27f, h * 0.065f}, "GJ_button_03.png", 0.36f));
         menu->addChild(VersusUI::button("LEAVE LOBBY", this, menu_selector(LobbyLayer::onLeaveLobby),
-            {w * 0.50f, h * 0.065f}, "GJ_button_01.png", 0.40f));
+            {w * 0.73f, h * 0.065f}, "GJ_button_01.png", 0.36f));
         menu->addChild(VersusUI::button("PLAZA", this, menu_selector(LobbyLayer::onOpenPlaza),
             {w * 0.50f, 30.f}, "GJ_button_01.png", 0.36f));
         m_page->addChild(menu, 5);
@@ -280,6 +291,21 @@ namespace Versus {
     void LobbyLayer::onToggleReady(CCObject*) {
         VersusLobby::setReady(!VersusLobby::ready());
         showRoomLobby();
+    }
+
+    void LobbyLayer::onShareCode(CCObject*) {
+        uint32_t code = Versus::globedApiAvailable() ? globed::api::room::getPasscode() : 0;
+        if (code == 0) {
+            showInfo("LOBBY CODE", "ROOM SHARING",
+                "NO CODE AVAILABLE",
+                "This room has no passcode yet.",
+                "A code appears once Globed reports one for the room.");
+            return;
+        }
+        showInfo("LOBBY CODE", "ROOM SHARING",
+            fmt::format("{}", code).c_str(),
+            "Friends select this room in Globed's room browser and enter",
+            "the code when prompted. Versus cannot join rooms for you — that needs an upstream Globed API.");
     }
 
     void LobbyLayer::onHostCancelMatch(CCObject*) {
