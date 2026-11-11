@@ -34,6 +34,10 @@ namespace VersusLobby {
     // Match lifecycle phase, mirrored from the packet stream.
     enum class MatchPhase { None, Countdown, InGame, Results };
 
+    // Defined further down in this file; declared early because the match
+    // lifecycle functions above their definitions call them.
+    inline void sendProgress(uint16_t percentX10, uint32_t deaths, uint8_t flags);
+
     struct RemotePlayer {
         int accountId = 0;
         uint8_t mode = 0;
