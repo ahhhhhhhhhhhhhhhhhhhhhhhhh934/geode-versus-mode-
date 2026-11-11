@@ -42,6 +42,7 @@ namespace VersusLobby {
     // Defined further down in this file; declared early because the match
     // lifecycle functions above their definitions call them.
     inline void sendProgress(uint16_t percentX10, uint32_t deaths, uint8_t flags);
+    inline void recordMatchOutcome();
 
     struct RemotePlayer {
         int accountId = 0;
@@ -355,7 +356,7 @@ namespace VersusLobby {
         record.rankDelta = verdict.rankDelta;
         record.deaths = s_localDeaths;
         record.percentX10 = static_cast<uint16_t>(PlayLayer::get()
-            ? PlayLayer::get()->m_percentage * 10 : 0);
+            ? static_cast<uint16_t>(PlayLayer::get() ? PlayLayer::get()->getCurrentPercentInt() : 0) : 0);
         VersusStats::appendRecord(record);
     }
 
