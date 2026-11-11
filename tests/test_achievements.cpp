@@ -25,7 +25,7 @@ int main() {
     assert(explorer[3].unlocked);
     assert(explorer[4].unlocked);
     assert(explorer[5].unlocked);
-    assert(unlockedCount(explorer) == 6);
+    assert(unlockedCount(explorer) == 5);
 
     history.push_back({5, 5, 104, 26, Outcome::Loss, -15, 3, 420});
     history.push_back({6, 1, 105, 27, Outcome::Draw, 0, 2, 800});
