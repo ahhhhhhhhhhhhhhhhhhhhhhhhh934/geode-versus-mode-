@@ -1,6 +1,14 @@
-# Geode Versus Mode — 1.0.0
+# Geode Versus Mode — 1.0.1
 
-Version target: **v1.0.0** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64
+Version target: **v1.0.1** · Geometry Dash 2.2081 · Geode SDK 5.11.2
+
+## Platform support
+
+- **Android64:** current supported build target; CI produces the installable `.geode` artifact.
+- **iOS arm64:** experimental build target. CI compiles the mod and uploads the resulting package/binary separately. It is not called stable until installed and tested on a real iPhone/iPad with the current Geode iOS launcher.
+- **Windows/macOS:** not currently configured as release targets.
+
+The iOS build uses Geode's iOS cross-compilation toolchain. Geode's iOS launcher supports iOS/iPadOS 14 or later, but installation and JIT/JIT-less capabilities depend on the device, iOS version, and installation method.
 
 ## Multiplayer architecture
 
@@ -8,19 +16,21 @@ Version target: **v1.0.0** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Androi
 - **Versus Mode:** lobby, mode selection, match rules, and results UI.
 - No Supabase, Cloudflare Worker, Render service, or separate gameplay server is required or configured.
 
-## 1.0.0 status
+## Current implementation
 
 - Level Complete-inspired Geometry Dash lobby styling.
 - Globed connection detection and room status.
 - Local rank/profile preview and Versus mode-selection UI.
 - Private play uses Globed rooms directly.
+- Android build workflow.
+- Experimental iOS arm64 build workflow.
 
-## Important current limitations
+## Important limitations
 
-Globed provides multiplayer networking and room infrastructure, but it does not automatically provide Versus Mode's custom cross-room matchmaking queue, ready-check, mode rules, or authoritative results. Those features must be implemented as a Globed-native protocol before they can be advertised as working. This release does not require external Supabase configuration and does not claim a global automatic queue is live.
+Globed provides multiplayer networking and room infrastructure, but it does not automatically provide Versus Mode's custom cross-room matchmaking queue, ready-check, mode rules, ranked service, or authoritative results. Those features still need a Globed-native protocol and server-side support before they can be advertised as working.
 
-The room/session handoff and synchronized gameplay rules still require runtime validation on Android with Globed 2.3.0 beta or newer.
+The room/session handoff and synchronized gameplay rules still require runtime validation with two real clients. The iOS build also requires device testing before it can be called supported/stable.
 
 ## Development
 
-The complete feature plan and release gates are tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+See [the Versus Mode roadmap](docs/ROADMAP.md) for the feature plan and release gates.
