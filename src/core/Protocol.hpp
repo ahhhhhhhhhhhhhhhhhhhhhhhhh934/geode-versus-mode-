@@ -40,6 +40,13 @@ namespace VersusProto {
     inline constexpr uint8_t kMinimumAction = 1;
     inline constexpr uint8_t kMaximumAction = 11;
 
+    // Game mode ids carried by lobby packets (see src/core/GameModes.hpp).
+    inline constexpr uint8_t kMinimumMode = 1;
+    inline constexpr uint8_t kMaximumMode = 6;
+    inline bool validMode(uint8_t mode) {
+        return mode >= kMinimumMode && mode <= kMaximumMode;
+    }
+
     // Progress flags
     inline constexpr uint8_t kFlagEliminated = 0x01;
     inline constexpr uint8_t kFlagFinished = 0x02;

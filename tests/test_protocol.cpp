@@ -144,6 +144,14 @@ static void testRoomIdZero() {
     CHECK(d->roomId == 0); // codec passes it through; LobbyClient must reject it
 }
 
+static void testModeValidation() {
+    CHECK(VersusProto::validMode(1));
+    CHECK(VersusProto::validMode(6));
+    CHECK(!VersusProto::validMode(0));
+    CHECK(!VersusProto::validMode(7));
+    CHECK(!VersusProto::validMode(255));
+}
+
 int main() {
     testHeaderShape();
     testLobbyRoundtrip();
@@ -154,6 +162,7 @@ int main() {
     testResultsRoundtrip();
     testRejectsGarbage();
     testRoomIdZero();
+    testModeValidation();
 
     if (g_failures == 0) {
         std::printf("All protocol tests passed.\n");

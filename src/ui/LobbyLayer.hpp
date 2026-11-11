@@ -3,6 +3,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include "../net/GlobedClient.hpp"
+#include "../net/LobbyClient.hpp"
 #include "Theme.hpp"
 
 using namespace geode::prelude;
