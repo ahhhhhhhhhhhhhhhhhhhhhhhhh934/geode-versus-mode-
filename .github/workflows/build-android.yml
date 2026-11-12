@@ -1,3 +1,4 @@
+# Re-triggered after GitHub Actions runner-assignment incident on 2026-11-11.
 name: Build Android Geode mod
 
 on:
