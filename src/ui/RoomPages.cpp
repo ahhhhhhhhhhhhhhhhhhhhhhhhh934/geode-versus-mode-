@@ -391,15 +391,6 @@ namespace Versus {
         showRoomLobby();
     }
 
-    void LobbyLayer::onShareCode(CCObject*) {
-        uint32_t code = Versus::globedApiAvailable() ? globed::api::room::getPasscode() : 0;
-        if (code == 0) {
-            showInfo("LOBBY CODE", "ROOM SHARING",
-                "NO CODE AVAILABLE",
-                "This room has no passcode yet.",
-                "A code appears once Globed reports one for the room.");
-            return;
-        }
         showInfo("LOBBY CODE", "ROOM SHARING",
             fmt::format("{}", code).c_str(),
             "Friends select this room in Globed's room browser and enter",
