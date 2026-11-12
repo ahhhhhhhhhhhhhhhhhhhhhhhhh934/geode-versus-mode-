@@ -1,6 +1,6 @@
 # Geode Versus Mode — 1.0.0
 
-Version target: **v1.0.5** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64 and iOS
+Next release target: **v1.0.6** · Current package version: **v1.0.5** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64 and iOS
 
 ## Platform builds
 
