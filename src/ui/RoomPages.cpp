@@ -391,11 +391,6 @@ namespace Versus {
         showRoomLobby();
     }
 
-        showInfo("LOBBY CODE", "ROOM SHARING",
-            fmt::format("{}", code).c_str(),
-            "Friends select this room in Globed's room browser and enter",
-            "the code when prompted. Versus cannot join rooms for you — that needs an upstream Globed API.");
-    }
 
     void LobbyLayer::onHostCancelMatch(CCObject*) {
         VersusLobby::cancelMatch(VersusProto::CancelReason::HostCancelled);
