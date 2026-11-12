@@ -1,6 +1,13 @@
 # Geode Versus Mode — 1.0.0
 
-Version target: **v1.0.0** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64
+Next release target: **v1.0.6** · Current package version: **v1.0.5** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64 and iOS
+
+## Platform builds
+
+- Android64 and iOS packages are built independently in GitHub Actions.
+- The iOS target uses the official Geode iOS build target on a macOS runner.
+- iOS packages are distributed as Geode `.geode` mod packages; they are not standalone Geometry Dash apps.
+- The iOS build must pass CI and then be tested in Geometry Dash with the iOS Geode launcher and a compatible Globed installation before it is called playable.
 
 ## Multiplayer architecture
 

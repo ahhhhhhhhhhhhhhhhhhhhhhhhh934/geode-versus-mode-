@@ -15,6 +15,13 @@ endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
+# Geode 5.11.2's iOS codegen emits FMOD wrapper signatures in
+# GeneratedSource.cpp without including FMOD's declarations. The iOS
+# bindings target therefore needs the FMOD header forced into that TU.
+if (GEODE_TARGET_PLATFORM STREQUAL "iOS" AND TARGET GeodeBindings)
+    target_compile_options(GeodeBindings PRIVATE "-include" "fmod.hpp")
+endif()
+
 # Globed is not published in the Geode index yet, so declare it as an
 # externally supplied runtime dependency. We still fetch its public headers
 # from the upstream source repository for compilation.
