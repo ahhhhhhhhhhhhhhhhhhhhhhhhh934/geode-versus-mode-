@@ -1,5 +1,5 @@
 # Re-triggered after GitHub Actions runner-assignment incident on 2026-11-11.
-name: Build Android Geode mod
+name: Build Android and iOS Geode mods
 
 on:
   workflow_dispatch:
@@ -169,6 +169,11 @@ jobs:
         with:
           name: Versus-Mode-Android64
           path: release-assets/android
+      - name: Download iOS package
+        uses: actions/download-artifact@v4
+        with:
+          name: Versus-Mode-iOS
+          path: release-assets/ios
 
       - name: Publish verified Android release
         uses: softprops/action-gh-release@v2
