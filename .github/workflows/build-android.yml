@@ -175,13 +175,30 @@ jobs:
           name: Versus-Mode-iOS
           path: release-assets/ios
 
-      - name: Publish verified Android release
+      # Geode names both platform outputs "versus.mode.geode". Give each
+      # package a unique release asset name so GitHub cannot collapse one
+      # platform's upload into the other.
+      - name: Prepare uniquely named platform packages
+        shell: bash
+        run: |
+          ANDROID_PACKAGE="$(find release-assets/android -type f -name '*.geode' -print -quit)"
+          IOS_PACKAGE="$(find release-assets/ios -type f -name '*.geode' -print -quit)"
+          if [[ -z "$ANDROID_PACKAGE" || -z "$IOS_PACKAGE" ]]; then
+            echo "::error::Both Android64 and iOS Geode packages are required"
+            exit 1
+          fi
+          cp "$ANDROID_PACKAGE" release-assets/versus.mode.android64.geode
+          cp "$IOS_PACKAGE" release-assets/versus.mode.ios.geode
+
+      - name: Publish Android64 and iOS release packages
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
           tag_name: ${{ steps.version.outputs.version }}
           target_commitish: ${{ needs.build-android64.outputs.commit }}
           generate_release_notes: true
-          files: release-assets/**/*.geode
+          files: |
+            release-assets/versus.mode.android64.geode
+            release-assets/versus.mode.ios.geode
           fail_on_unmatched_files: true
           make_latest: true
