@@ -6,6 +6,14 @@ This document is the working feature plan for Versus Mode. A roadmap item is a g
 
 Versus Mode should feel like a complete Geometry Dash competition hub: fast to enter, visually consistent with the game, useful with friends, and honest about online status. Keep the mod client focused on presentation, local preferences, match rules, and gameplay integration.
 
+## Platform support
+
+- [x] Build the Apple mobile package using Geode's iOS arm64 target, which is the shared .geode target for compatible iPhone and iPad installations.
+- [ ] Verify installation and launch on a real iPad running a supported iPadOS version.
+- [ ] Check portrait and landscape layouts, touch targets, text legibility, safe areas, and split-screen/resizable window behavior on iPad.
+- [ ] Confirm the supported Geometry Dash, Geode iOS launcher, and Globed versions on the test iPad.
+- Do not publish a second "iPadOS" binary by merely renaming the iOS package; it is the same platform binary.
+
 ## Multiplayer foundation
 
 - [x] Remove the Supabase dependency and its configuration.
@@ -76,6 +84,7 @@ Versus Mode should feel like a complete Geometry Dash competition hub: fast to e
 - Globed does not automatically supply a custom global Versus queue, ranked service, room directory, or authoritative Versus results.
 - A true cross-room queue needs explicit support in Globed's central-server layer (upstream or a maintained Globed-compatible server extension). No unrelated gameplay server or Supabase dependency should be introduced.
 - Every online feature must be tested end-to-end on Android with the supported Globed version before it is described as playable.
+- The Apple mobile package must also be tested on a real iPad before iPadOS support is advertised as verified.
 
 ## Release gates
 
@@ -85,5 +94,6 @@ A feature is ready to be called playable only after:
 3. Two real clients can complete the flow through Globed.
 4. Disconnects, retries, and invalid states are handled.
 5. The feature's status is documented accurately.
+6. For iPadOS claims, the shared iOS package installs and runs on a real supported iPad in both supported orientations.
 
 Until then, label it as a preview, prototype, or planned feature.
