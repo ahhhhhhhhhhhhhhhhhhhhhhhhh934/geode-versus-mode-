@@ -217,11 +217,15 @@ namespace Versus {
             VersusUI::label(m_page, "MATCH IN PROGRESS — PLAY THE LEVEL",
                 0.28f, {w * 0.50f, h * 0.33f}, {255,160,120});
         } else {
-            size_t readyCount = 0;
-            for (auto const& p : players) if (p.ready) ++readyCount;
-            if (VersusLobby::ready()) ++readyCount;
+            size_t readyCount = VersusLobby::ready() ? 1 : 0;
+            size_t participantCount = 1;
+            for (auto const& p : players) {
+                if (!p.versusActive) continue;
+                ++participantCount;
+                if (p.ready) ++readyCount;
+            }
             VersusUI::label(m_page,
-                fmt::format("{} / {} PLAYERS READY", readyCount, players.size() + 1).c_str(),
+                fmt::format("{} / {} VERSUS PLAYERS READY", readyCount, participantCount).c_str(),
                 0.28f, {w * 0.50f, h * 0.33f}, {145,220,255});
         }
 
