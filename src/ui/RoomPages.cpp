@@ -176,13 +176,16 @@ namespace Versus {
 
         float y = listTop - rowHeight;
         bool hostInList = false;
-        auto drawRow = [&](int accountId, char const* suffix, bool isHost, bool ready) {
+        auto drawRow = [&](int accountId, char const* suffix, bool isHost, bool ready, bool versusActive) {
             if (isHost) hostInList = true;
             std::string name = fmt::format("PLAYER {}{}", accountId, suffix);
             VersusUI::label(m_page, name.c_str(), 0.24f, {w * 0.22f, y}, {235,240,250});
-            char const* status = isHost ? "HOST" : (ready ? "READY" : "NOT READY");
+            char const* status = isHost ? "HOST" :
+                (!versusActive ? "IN ROOM" : (ready ? "READY" : "NOT READY"));
             VersusUI::label(m_page, status, 0.24f, {w * 0.82f, y},
-                isHost ? ccColor3B{255,210,110} : (ready ? ccColor3B{115,255,170} : ccColor3B{185,205,230}));
+                isHost ? ccColor3B{255,210,110} :
+                (!versusActive ? ccColor3B{150,190,235} :
+                    (ready ? ccColor3B{115,255,170} : ccColor3B{185,205,230})));
             y -= rowHeight;
         };
 
@@ -191,13 +194,13 @@ namespace Versus {
         bool selfListed = false;
         for (auto const& p : players) {
             if (p.accountId == self) {
-                drawRow(p.accountId, "  (YOU)", p.accountId == host, p.ready);
+                drawRow(p.accountId, "  (YOU)", p.accountId == host, p.ready, true);
                 selfListed = true;
             } else {
-                drawRow(p.accountId, "", p.accountId == host, p.ready);
+                drawRow(p.accountId, "", p.accountId == host, p.ready, p.versusActive);
             }
         }
-        if (!selfListed) drawRow(self, "  (YOU)", self == host, VersusLobby::ready());
+        if (!selfListed) drawRow(self, "  (YOU)", self == host, VersusLobby::ready(), true);
 
         if (hostKnown && !hostInList && self != host) {
             VersusUI::label(m_page, fmt::format("HOST PLAYER {} NOT IN LOBBY", host).c_str(),
@@ -214,11 +217,15 @@ namespace Versus {
             VersusUI::label(m_page, "MATCH IN PROGRESS — PLAY THE LEVEL",
                 0.28f, {w * 0.50f, h * 0.33f}, {255,160,120});
         } else {
-            size_t readyCount = 0;
-            for (auto const& p : players) if (p.ready) ++readyCount;
-            if (VersusLobby::ready()) ++readyCount;
+            size_t readyCount = VersusLobby::ready() ? 1 : 0;
+            size_t participantCount = 1;
+            for (auto const& p : players) {
+                if (!p.versusActive) continue;
+                ++participantCount;
+                if (p.ready) ++readyCount;
+            }
             VersusUI::label(m_page,
-                fmt::format("{} / {} PLAYERS READY", readyCount, players.size() + 1).c_str(),
+                fmt::format("{} / {} VERSUS PLAYERS READY", readyCount, participantCount).c_str(),
                 0.28f, {w * 0.50f, h * 0.33f}, {145,220,255});
         }
 
@@ -298,6 +305,7 @@ namespace Versus {
         std::vector<VersusMatchmaking::QueuePlayer> queue;
         auto players = VersusLobby::players();
         for (auto const& p : players) {
+            if (!p.versusActive) continue;
             queue.push_back({p.accountId, p.queueType, p.difficultyTier});
         }
         auto self = VersusLobby::localAccountId();

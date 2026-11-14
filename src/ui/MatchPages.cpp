@@ -48,6 +48,9 @@ namespace Versus {
         }
 
         VersusUI::label(m_page,
+            VersusLobby::isHost() ? "HOST SELECTS THE MODE FOR EVERYONE" : "ONLY THE ROOM HOST CAN SELECT THE MODE",
+            0.17f, {w * 0.50f, h * 0.145f}, {255,215,130});
+        VersusUI::label(m_page,
             "RULES: DYING ELIMINATES YOU IN SURVIVAL  •  WARM-UP RECORDS NOTHING",
             0.16f, {w * 0.50f, h * 0.115f}, {160,190,225});
 
@@ -241,7 +244,7 @@ namespace Versus {
         drawLine(fmt::format("YOU  {} DEATHS{}", VersusLobby::s_localDeaths,
             VersusLobby::s_localFinished ? "  •  FINISHED" : ""), {145, 255, 175});
         for (auto const& p : players) {
-            if (p.accountId == self) continue;
+            if (p.accountId == self || !p.versusActive) continue;
             if (p.finished) {
                 drawLine(fmt::format("PLAYER {}  FINISHED  •  {} DEATHS", p.accountId, p.deaths),
                     {255, 220, 120});
@@ -280,6 +283,12 @@ namespace Versus {
     }
 
     void LobbyLayer::onPickMode(CCObject* sender) {
+        if (!VersusLobby::isHost()) {
+            showInfo("MODE SELECT", "HOST CONTROLS", "ONLY THE HOST CAN CHANGE THE MODE",
+                "The room owner chooses the game mode for everyone.",
+                "Ask the host to select the mode you want to play.");
+            return;
+        }
         auto* item = static_cast<CCMenuItemSpriteExtra*>(sender);
         uint8_t mode = static_cast<uint8_t>(item->getTag());
         if (VersusModes::find(mode)) {

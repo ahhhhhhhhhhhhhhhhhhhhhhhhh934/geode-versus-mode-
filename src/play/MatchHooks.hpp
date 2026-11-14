@@ -87,7 +87,7 @@ namespace VersusPlay {
             std::sort(players.begin(), players.end(),
                 [](auto const& a, auto const& b) { return a.accountId < b.accountId; });
             for (auto const& p : players) {
-                if (p.accountId == self || lineIndex >= kMaxLines) continue;
+                if (p.accountId == self || !p.versusActive || lineIndex >= kMaxLines) continue;
                 std::string line;
                 ccColor3B color = {225, 235, 250};
                 if (p.finished) {
@@ -139,10 +139,13 @@ class $modify(VersusPlayLayer, PlayLayer) {
             auto* info = VersusModes::find(mode);
             if (info && info->ranked) {
                 bool platformer = level->isPlatformer();
+                VersusLobby::s_levelModeValid = true;
                 if (info->requiresPlatformer && !platformer) {
-                    VersusLobby::pushAlert("NOT A PLATFORMER LEVEL — TREAT THIS AS PRACTICE");
+                    VersusLobby::s_levelModeValid = false;
+                    VersusLobby::pushAlert("NOT A PLATFORMER LEVEL — RESULTS WILL NOT BE RANKED");
                 } else if (mode == static_cast<uint8_t>(VersusModes::Mode::ClassicRace) && platformer) {
-                    VersusLobby::pushAlert("PLATFORMER LEVEL IN A CLASSIC RACE — TREAT THIS AS PRACTICE");
+                    VersusLobby::s_levelModeValid = false;
+                    VersusLobby::pushAlert("PLATFORMER LEVEL IN A CLASSIC RACE — RESULTS WILL NOT BE RANKED");
                 }
             } else if (info && !info->ranked) {
                 VersusLobby::pushAlert("WARM-UP ROOM — NOTHING IS RECORDED");
