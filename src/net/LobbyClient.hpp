@@ -496,7 +496,7 @@ namespace VersusLobby {
     }
 
     inline void reportLocalDeath(uint16_t percentX10) {
-        if (s_phase != MatchPhase::InGame) return;
+        if (s_phase != MatchPhase::InGame || s_localEliminated) return;
         s_localDeaths++;
         // Survival eliminates on death; other modes only cost time.
         if (auto* mode = VersusModes::find(s_mode); mode && mode->elimination) {
@@ -512,7 +512,7 @@ namespace VersusLobby {
     }
 
     inline void reportLocalFinish() {
-        if (s_phase != MatchPhase::InGame || s_localFinished) return;
+        if (s_phase != MatchPhase::InGame || s_localFinished || s_localEliminated) return;
         s_localFinished = true;
         // 1000 == 100.0 percent, x10 encoding.
         send(VersusProto::encodeFinish(s_roomId, s_matchId, elapsedMatchMs(),
