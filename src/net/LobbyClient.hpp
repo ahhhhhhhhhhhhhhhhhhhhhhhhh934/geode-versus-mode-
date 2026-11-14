@@ -507,7 +507,7 @@ namespace VersusLobby {
     }
 
     inline void reportLocalProgress(uint16_t percentX10) {
-        if (s_phase != MatchPhase::InGame || s_localFinished) return;
+        if (s_phase != MatchPhase::InGame || s_localFinished || s_localEliminated) return;
         sendProgress(percentX10, s_localDeaths, localProgressFlags());
     }
 
