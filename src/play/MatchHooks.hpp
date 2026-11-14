@@ -87,7 +87,7 @@ namespace VersusPlay {
             std::sort(players.begin(), players.end(),
                 [](auto const& a, auto const& b) { return a.accountId < b.accountId; });
             for (auto const& p : players) {
-                if (p.accountId == self || lineIndex >= kMaxLines) continue;
+                if (p.accountId == self || !p.versusActive || lineIndex >= kMaxLines) continue;
                 std::string line;
                 ccColor3B color = {225, 235, 250};
                 if (p.finished) {
