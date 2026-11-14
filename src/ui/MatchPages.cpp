@@ -244,7 +244,7 @@ namespace Versus {
         drawLine(fmt::format("YOU  {} DEATHS{}", VersusLobby::s_localDeaths,
             VersusLobby::s_localFinished ? "  •  FINISHED" : ""), {145, 255, 175});
         for (auto const& p : players) {
-            if (p.accountId == self) continue;
+            if (p.accountId == self || !p.versusActive) continue;
             if (p.finished) {
                 drawLine(fmt::format("PLAYER {}  FINISHED  •  {} DEATHS", p.accountId, p.deaths),
                     {255, 220, 120});
