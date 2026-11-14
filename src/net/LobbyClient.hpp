@@ -4,7 +4,6 @@
 #include <globed/soft-link/API.hpp>
 #include <globed/core/data/Messages.hpp>
 #include <globed/core/net/MessageListener.hpp>
-#include <globed/core/data/Messages.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
 #include "../core/GameModes.hpp"
 #include "../core/MatchLogic.hpp"
