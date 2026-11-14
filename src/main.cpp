@@ -7,13 +7,9 @@ using namespace geode::prelude;
 
 // Register Globed room-roster listeners at mod startup, not only when the
 // Versus menu is opened, so the initial room snapshot is not missed.
-class $execute {
-public:
-    void ready() {
-        VersusLobby::initialize();
-        SessionDriver::ensure();
-    }
-};
+$execute {
+    VersusLobby::initialize();
+}
 
 // The screenshot's Create/Saved/Scores/Quests/Versus grid belongs to CreatorLayer,
 // not GJMoreGamesLayer. Add the clickable tile to that actual screen.
