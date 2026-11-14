@@ -227,6 +227,7 @@ namespace VersusLobby {
                 s_countdown = static_cast<float>(d.countdownSeconds);
                 s_phase = MatchPhase::Countdown;
                 s_resultsRecorded = false;
+                s_levelModeValid = true;
                 s_rematchVotes.clear();
                 s_hostAtLaunch = hostAccountId();
                 s_hostGrace = 0.f;
