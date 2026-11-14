@@ -4,6 +4,7 @@
 #include <globed/soft-link/API.hpp>
 #include <globed/core/data/Messages.hpp>
 #include <globed/core/net/MessageListener.hpp>
+#include <globed/core/data/Messages.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
 #include "../core/GameModes.hpp"
 #include "../core/MatchLogic.hpp"
@@ -59,13 +60,19 @@ namespace VersusLobby {
         bool eliminated = false;
         bool disconnected = false;
         uint32_t finishTimeMs = 0;
+        // True only when this player has joined the Versus protocol.
+        bool versusActive = false;
     };
 
     // ---- shared state -----------------------------------------------------
 
     inline std::unordered_map<int, RemotePlayer> s_players;
     inline geode::ListenerHandle s_listener;
+    inline geode::ListenerHandle s_roomStateListener;
+    inline geode::ListenerHandle s_roomPlayersListener;
     inline bool s_registered = false;
+    inline uint32_t s_globedRoomId = 0;
+    inline std::unordered_map<int, RemotePlayer> s_roomMembers;
 
     inline uint32_t s_roomId = 0;
     inline uint8_t s_mode = 0;
@@ -82,6 +89,7 @@ namespace VersusLobby {
     inline uint8_t s_countdownTotal = 0;
     inline uint32_t s_matchCounter = 0;
     inline bool s_resultsRecorded = false;
+    inline bool s_levelModeValid = true;
     inline std::unordered_map<int, bool> s_rematchVotes;
 
     // connection bookkeeping for reconnection
@@ -196,8 +204,10 @@ namespace VersusLobby {
             case VersusProto::Action::Heartbeat: {
                 auto& p = s_players[sender];
                 p.accountId = sender;
+                p.versusActive = true;
                 p.mode = d.mode;
                 p.ready = d.ready;
+                if (sender == hostAccountId() && VersusProto::validMode(d.mode)) s_mode = d.mode;
                 p.queueType = d.queueType;
                 p.difficultyTier = d.difficultyTier;
                 p.lastSeen = s_clock;
@@ -209,7 +219,7 @@ namespace VersusLobby {
                 break;
             case VersusProto::Action::Launch: {
                 // Only the room owner may launch a match.
-                if (sender != hostAccountId()) return;
+                if (sender != hostAccountId() || !VersusProto::validMode(d.mode)) return;
                 s_matchId = d.matchId;
                 s_levelId = d.levelId;
                 s_mode = d.mode;
@@ -287,6 +297,39 @@ namespace VersusLobby {
         globed::api::waitForGlobed([] {
             if (!globed::api::available() || s_registered) return;
             globed::api::net::registerEvent(VersusProto::kEventId, globed::EventServer::Central);
+            s_roomStateListener = globed::MessageEvent<globed::msg::RoomStateMessage>{false}.listen(
+                [](const globed::msg::RoomStateMessage& message) {
+                    s_globedRoomId = message.roomId;
+                    s_roomMembers.clear();
+                    for (auto const& member : message.players) {
+                        int id = member.accountData.accountId;
+                        if (id <= 0 || id == localAccountId()) continue;
+                        RemotePlayer player;
+                        player.accountId = id;
+                        player.lastSeen = s_clock;
+                        s_roomMembers[id] = player;
+                    }
+                }
+            );
+            s_roomPlayersListener = globed::MessageEvent<globed::msg::RoomPlayersMessage>{false}.listen(
+                [](const globed::msg::RoomPlayersMessage& message) {
+                    if (!globed::api::room::isInRoom()) {
+                        s_globedRoomId = 0;
+                        s_roomMembers.clear();
+                        return;
+                    }
+                    s_globedRoomId = globed::api::room::getId();
+                    s_roomMembers.clear();
+                    for (auto const& member : message.players) {
+                        int id = member.accountData.accountId;
+                        if (id <= 0 || id == localAccountId()) continue;
+                        RemotePlayer player;
+                        player.accountId = id;
+                        player.lastSeen = s_clock;
+                        s_roomMembers[id] = player;
+                    }
+                }
+            );
             s_listener = globed::MessageEvent<globed::msg::EventsMessage>{false}.listen(
                 [](const globed::msg::EventsMessage& message) {
                     for (auto const& event : message.events) {
@@ -328,7 +371,7 @@ namespace VersusLobby {
     }
 
     inline void setMode(uint8_t mode) {
-        if (!s_joined || !VersusProto::validMode(mode)) return;
+        if (!s_joined || !isHost() || !VersusProto::validMode(mode)) return;
         s_mode = mode;
         sendLobby(VersusProto::Action::Heartbeat);
     }
@@ -355,6 +398,7 @@ namespace VersusLobby {
         s_phase = MatchPhase::None;
         s_countdown = 0.f;
         s_resultsRecorded = false;
+        s_levelModeValid = true;
         s_queueType = 0;
         s_difficultyTier = 0;
     }
@@ -401,7 +445,7 @@ namespace VersusLobby {
         s_resultsRecorded = true;
 
         auto* info = VersusModes::find(s_mode);
-        if (!info || !info->ranked) return; // warm-up records nothing
+        if (!info || !info->ranked || !s_levelModeValid) return; // warm-up or invalid level/mode
 
         auto snapshot = buildSnapshot();
         auto verdict = VersusMatch::computeVerdict(snapshot);
@@ -483,7 +527,7 @@ namespace VersusLobby {
     }
 
     inline void launchMatch(int levelId, uint8_t mode, uint8_t countdownSeconds) {
-        if (!s_joined || !isHost()) return;
+        if (!s_joined || !isHost() || !VersusProto::validMode(mode) || levelId <= 0) return;
         s_matchId = nextMatchId();
         send(VersusProto::encodeLaunch(s_roomId, s_matchId, levelId, mode, countdownSeconds));
         // Apply locally too, so the host's own countdown runs.
@@ -689,9 +733,18 @@ namespace VersusLobby {
     inline int levelId() { return s_levelId; }
 
     inline std::vector<RemotePlayer> players() {
+        std::unordered_map<int, RemotePlayer> combined;
+        if (s_globedRoomId == s_roomId && s_roomId != 0) combined = s_roomMembers;
+        for (auto const& [id, player] : s_players) {
+            combined[id] = player;
+            combined[id].versusActive = true;
+        }
+        int self = localAccountId();
         std::vector<RemotePlayer> result;
-        result.reserve(s_players.size());
-        for (auto const& [id, player] : s_players) result.push_back(player);
+        result.reserve(combined.size());
+        for (auto const& [id, player] : combined) {
+            if (id != self) result.push_back(player);
+        }
         return result;
     }
 
