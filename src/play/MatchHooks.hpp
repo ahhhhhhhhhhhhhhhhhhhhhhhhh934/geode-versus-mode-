@@ -138,7 +138,9 @@ class $modify(VersusPlayLayer, PlayLayer) {
             uint8_t mode = VersusLobby::mode();
             auto* info = VersusModes::find(mode);
             if (info && info->ranked) {
-                bool platformer = level->isPlatformer();
+                // Read the active gameplay mode from PlayLayer itself. The level metadata's
+                // cached length field can be unset/stale for downloaded custom levels.
+                bool platformer = this->m_isPlatformer;
                 VersusLobby::s_levelModeValid = true;
                 if (info->requiresPlatformer && !platformer) {
                     VersusLobby::s_levelModeValid = false;
