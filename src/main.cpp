@@ -47,6 +47,35 @@ static void showVersusLockedDialog() {
     )->show();
 }
 
+// Developer access is tied to the logged-in Geometry Dash account, not the
+// editable local player-name setting. Only the account username iio103 is allowed.
+static bool isAuthorizedDeveloper() {
+    auto* account = GJAccountManager::sharedState();
+    return account && account->m_accountID > 0 && account->m_username == "iio103";
+}
+
+static void showDeveloperPanel() {
+    if (!isAuthorizedDeveloper()) return;
+
+    auto* account = GJAccountManager::sharedState();
+    auto* stats = GameStatsManager::sharedState();
+    bool electrodynamixComplete = stats && stats->hasCompletedMainLevel(15);
+
+    std::string details =
+        "Developer access: AUTHORIZED\\n"
+        "Geometry Dash account: iio103\\n"
+        "Versus unlock requirement: Electrodynamix\\n"
+        "Electrodynamix status: ";
+    details += electrodynamixComplete ? "COMPLETED\\n" : "NOT COMPLETED\\n";
+    details += "Mod: Versus Mode v1.0.11";
+
+    FLAlertLayer::create(
+        "VERSUS DEVELOPER PANEL",
+        details,
+        "CLOSE"
+    )->show();
+}
+
 // The screenshot's Create/Saved/Scores/Quests/Versus grid belongs to CreatorLayer,
 // not GJMoreGamesLayer. Add the clickable tile to that actual screen.
 class $modify(VersusCreatorLayer, CreatorLayer) {
@@ -79,8 +108,31 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
         // Match the Versus slot at the far right of the first row in CreatorLayer.
         item->setPosition({size.width * 0.788f, size.height * 0.808f});
         menu->addChild(item);
+
+        // The developer entry is created only for the authenticated GD account.
+        if (isAuthorizedDeveloper()) {
+            auto* devSprite = ButtonSprite::create(
+                "DEV", 35, true, "goldFont.fnt", "GJ_button_04.png", 30.f, 0.7f
+            );
+            if (devSprite) {
+                auto* devItem = CCMenuItemSpriteExtra::create(
+                    devSprite, this, menu_selector(VersusCreatorLayer::onDeveloperPanel)
+                );
+                if (devItem) {
+                    devItem->setID("versus-developer-panel-button");
+                    devItem->setPosition({size.width * 0.16f, size.height * 0.91f});
+                    menu->addChild(devItem);
+                }
+            }
+        }
+
         this->addChild(menu, 1000);
         return true;
+    }
+
+    void onDeveloperPanel(CCObject*) {
+        if (!isAuthorizedDeveloper()) return;
+        showDeveloperPanel();
     }
 
     void onVersus(CCObject*) {
