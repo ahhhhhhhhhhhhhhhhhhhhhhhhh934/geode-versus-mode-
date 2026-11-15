@@ -42,7 +42,7 @@ static void showVersusLockedDialog() {
 #endif
     FLAlertLayer::create(
         "The Keymaster",
-        "One doesn't simply play versus mode.\\nFirst you must complete Electrodynamix.",
+        "One doesn't simply play versus mode.\nFirst you must complete Electrodynamix.",
         "OK"
     )->show();
 }
