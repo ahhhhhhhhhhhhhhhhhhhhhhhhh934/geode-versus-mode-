@@ -18,10 +18,9 @@ static bool hasUnlockedVersus() {
     return stats && stats->hasCompletedMainLevel(15);
 }
 
-// Show the two-line Keymaster textbox. DialogLayer is available on iOS but is
-// not bound on Android, so Android uses a compatible Geode alert fallback.
+// Use Geometry Dash's native dialogue UI on every supported platform.
+// The two DialogObjects reproduce the Keymaster's two-page blue dialogue.
 static void showVersusLockedDialog() {
-#if defined(GEODE_IS_IOS)
     auto* first = DialogObject::create(
         "The Keymaster", "One doesn't simply play versus mode ",
         2, 1.f, false, ccColor3B{85, 175, 255}
@@ -39,10 +38,10 @@ static void showVersusLockedDialog() {
             return;
         }
     }
-#endif
+
     FLAlertLayer::create(
         "The Keymaster",
-        "One doesn't simply play versus mode.\nFirst you must complete Electrodynamix.",
+        "One doesn't simply play versus mode.\\nFirst you must complete Electrodynamix.",
         "OK"
     )->show();
 }
