@@ -41,7 +41,7 @@ static void showVersusLockedDialog() {
 
     FLAlertLayer::create(
         "The Keymaster",
-        "One doesn't simply play versus mode.\\nFirst you must complete Electrodynamix.",
+        "One doesn't simply play versus mode.\nFirst you must complete Electrodynamix.",
         "OK"
     )->show();
 }
@@ -60,12 +60,12 @@ static void showDeveloperPanel() {
     auto* stats = GameStatsManager::sharedState();
     bool electrodynamixComplete = stats && stats->hasCompletedMainLevel(15);
 
-    std::string details =
-        "Developer access: AUTHORIZED\\n"
-        "Geometry Dash account: iio103\\n"
-        "Versus unlock requirement: Electrodynamix\\n"
+    gd::string details =
+        "Developer access: AUTHORIZED\n"
+        "Geometry Dash account: iio103\n"
+        "Versus unlock requirement: Electrodynamix\n"
         "Electrodynamix status: ";
-    details += electrodynamixComplete ? "COMPLETED\\n" : "NOT COMPLETED\\n";
+    details += electrodynamixComplete ? "COMPLETED\n" : "NOT COMPLETED\n";
     details += "Mod: Versus Mode v1.0.11";
 
     FLAlertLayer::create(
