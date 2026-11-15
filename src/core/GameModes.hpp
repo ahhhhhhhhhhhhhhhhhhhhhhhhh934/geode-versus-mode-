@@ -105,7 +105,7 @@ namespace VersusModes {
             case LevelCheck::UnknownMode: return "UNKNOWN MODE";
             case LevelCheck::InvalidId: return "ENTER A LEVEL ID";
             case LevelCheck::NeedsPlatformerLevel:
-                return "PLATFORMER LEVEL REQUIRED — VERIFIED WHEN THE LEVEL OPENS";
+                return "PLATFORMER TYPE IS CHECKED AUTOMATICALLY WHEN THE LEVEL OPENS";
             case LevelCheck::NeedsClassicLevel:
                 return "CLASSIC (NON-PLATFORMER) LEVEL REQUIRED — VERIFIED WHEN THE LEVEL OPENS";
             case LevelCheck::WarmupAnyLevel:
