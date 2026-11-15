@@ -11,6 +11,42 @@ $execute {
     VersusLobby::initialize();
 }
 
+// Electrodynamix is main-level ID 15. GameStatsManager only marks it complete
+// after a legitimate completion, so practice-mode progress does not unlock Versus.
+static bool hasUnlockedVersus() {
+    auto* stats = GameStatsManager::sharedState();
+    return stats && stats->hasCompletedMainLevel(15);
+}
+
+// Show the two-line Keymaster textbox. DialogLayer is available on iOS but is
+// not bound on Android, so Android uses a compatible Geode alert fallback.
+static void showVersusLockedDialog() {
+#if defined(GEODE_IS_IOS)
+    auto* first = DialogObject::create(
+        "The Keymaster", "One doesn't simply play versus mode ",
+        2, 1.f, false, ccColor3B{85, 175, 255}
+    );
+    auto* second = DialogObject::create(
+        "The Keymaster", "First you must complete <s260><cx>Electrodynamix</c></s>",
+        2, 1.f, false, ccColor3B{85, 175, 255}
+    );
+    auto* messages = CCArray::create();
+    if (first && second && messages) {
+        messages->addObject(first);
+        messages->addObject(second);
+        if (auto* dialog = DialogLayer::createWithObjects(messages, 0)) {
+            dialog->addToMainScene();
+            return;
+        }
+    }
+#endif
+    FLAlertLayer::create(
+        "The Keymaster",
+        "One doesn't simply play versus mode.\\nFirst you must complete Electrodynamix.",
+        "OK"
+    )->show();
+}
+
 // The screenshot's Create/Saved/Scores/Quests/Versus grid belongs to CreatorLayer,
 // not GJMoreGamesLayer. Add the clickable tile to that actual screen.
 class $modify(VersusCreatorLayer, CreatorLayer) {
@@ -48,6 +84,11 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
     }
 
     void onVersus(CCObject*) {
+        if (!hasUnlockedVersus()) {
+            showVersusLockedDialog();
+            return;
+        }
+
         auto* scene = Versus::LobbyLayer::scene();
         if (scene) {
             scene->setID("versus-mode-scene");
