@@ -56,17 +56,22 @@ static bool isAuthorizedDeveloper() {
 static void showDeveloperPanel() {
     if (!isAuthorizedDeveloper()) return;
 
-    auto* account = GJAccountManager::sharedState();
     auto* stats = GameStatsManager::sharedState();
     bool electrodynamixComplete = stats && stats->hasCompletedMainLevel(15);
 
-    gd::string details =
-        "Developer access: AUTHORIZED\n"
-        "Geometry Dash account: iio103\n"
-        "Versus unlock requirement: Electrodynamix\n"
-        "Electrodynamix status: ";
-    details += electrodynamixComplete ? "COMPLETED\n" : "NOT COMPLETED\n";
-    details += "Mod: Versus Mode v1.0.11";
+    // Keep the alert text as a compile-time string: gd::string does not
+    // provide std::string-style operator+= in the Android Geode bindings.
+    auto const* details = electrodynamixComplete
+        ? "Developer access: AUTHORIZED\n"
+          "Geometry Dash account: iio103\n"
+          "Versus unlock requirement: Electrodynamix\n"
+          "Electrodynamix status: COMPLETED\n"
+          "Mod: Versus Mode v1.0.12"
+        : "Developer access: AUTHORIZED\n"
+          "Geometry Dash account: iio103\n"
+          "Versus unlock requirement: Electrodynamix\n"
+          "Electrodynamix status: NOT COMPLETED\n"
+          "Mod: Versus Mode v1.0.12";
 
     FLAlertLayer::create(
         "VERSUS DEVELOPER PANEL",
