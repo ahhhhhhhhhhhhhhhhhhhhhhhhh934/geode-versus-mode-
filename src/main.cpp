@@ -11,9 +11,13 @@ $execute {
     VersusLobby::initialize();
 }
 
-// Electrodynamix is main-level ID 15. GameStatsManager only marks it complete
-// after a legitimate completion, so practice-mode progress does not unlock Versus.
+// Developer-only, in-memory test override. This does not alter Geometry Dash
+// completion data or the player's save; it only lets iio103 test the locked flow.
+static bool g_forceVersusLockedForDev = false;
+
+// Electrodynamix is main-level ID 15. Practice-mode progress does not unlock Versus.
 static bool hasUnlockedVersus() {
+    if (g_forceVersusLockedForDev) return false;
     auto* stats = GameStatsManager::sharedState();
     return stats && stats->hasCompletedMainLevel(15);
 }
@@ -66,11 +70,15 @@ static void showDeveloperPanel() {
           "Geometry Dash account: iio103\n"
           "Versus unlock requirement: Electrodynamix\n"
           "Electrodynamix status: COMPLETED\n"
+          "Versus test override: "
+          "Use RESET VERSUS UNLOCK TEST to preview the locked Keymaster dialogue.\n"
           "Mod: Versus Mode v1.0.12"
         : "Developer access: AUTHORIZED\n"
           "Geometry Dash account: iio103\n"
           "Versus unlock requirement: Electrodynamix\n"
           "Electrodynamix status: NOT COMPLETED\n"
+          "Versus test override: "
+          "Use RESET VERSUS UNLOCK TEST to preview the locked Keymaster dialogue.\n"
           "Mod: Versus Mode v1.0.12";
 
     FLAlertLayer::create(
@@ -128,6 +136,23 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
                     menu->addChild(devItem);
                 }
             }
+
+            // This resets only the mod's temporary Versus unlock test state.
+            // It deliberately does not edit official level completion or stats.
+            auto* resetSprite = ButtonSprite::create(
+                "RESET VERSUS UNLOCK TEST", 25, true, "goldFont.fnt",
+                "GJ_button_05.png", 36.f, 0.55f
+            );
+            if (resetSprite) {
+                auto* resetItem = CCMenuItemSpriteExtra::create(
+                    resetSprite, this, menu_selector(VersusCreatorLayer::onResetVersusUnlockTest)
+                );
+                if (resetItem) {
+                    resetItem->setID("versus-reset-unlock-test-button");
+                    resetItem->setPosition({size.width * 0.16f, size.height * 0.84f});
+                    menu->addChild(resetItem);
+                }
+            }
         }
 
         this->addChild(menu, 1000);
@@ -137,6 +162,16 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
     void onDeveloperPanel(CCObject*) {
         if (!isAuthorizedDeveloper()) return;
         showDeveloperPanel();
+    }
+
+    void onResetVersusUnlockTest(CCObject*) {
+        if (!isAuthorizedDeveloper()) return;
+        g_forceVersusLockedForDev = true;
+        FLAlertLayer::create(
+            "VERSUS TEST RESET",
+            "The Versus unlock test is now locked. Press Versus to preview the Keymaster dialogue. Your actual Electrodynamix completion and Geometry Dash stats are unchanged. Restarting the game clears this temporary test override.",
+            "OK"
+        )->show();
     }
 
     void onVersus(CCObject*) {
