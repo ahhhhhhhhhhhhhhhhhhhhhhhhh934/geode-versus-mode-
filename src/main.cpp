@@ -11,17 +11,20 @@ $execute {
     VersusLobby::initialize();
 }
 
-// Electrodynamix is main-level ID 15. GameStatsManager only marks it complete
-// after a legitimate completion, so practice-mode progress does not unlock Versus.
+// Developer-only, in-memory test override. This does not alter Geometry Dash
+// completion data or the player's save; it only lets iio103 test the locked flow.
+static bool g_forceVersusLockedForDev = false;
+
+// Electrodynamix is main-level ID 15. Practice-mode progress does not unlock Versus.
 static bool hasUnlockedVersus() {
+    if (g_forceVersusLockedForDev) return false;
     auto* stats = GameStatsManager::sharedState();
     return stats && stats->hasCompletedMainLevel(15);
 }
 
-// Show the two-line Keymaster textbox. DialogLayer is available on iOS but is
-// not bound on Android, so Android uses a compatible Geode alert fallback.
+// Use Geometry Dash's native dialogue UI on every supported platform.
+// The two DialogObjects reproduce the Keymaster's two-page blue dialogue.
 static void showVersusLockedDialog() {
-#if defined(GEODE_IS_IOS)
     auto* first = DialogObject::create(
         "The Keymaster", "One doesn't simply play versus mode ",
         2, 1.f, false, ccColor3B{85, 175, 255}
@@ -39,11 +42,49 @@ static void showVersusLockedDialog() {
             return;
         }
     }
-#endif
+
     FLAlertLayer::create(
         "The Keymaster",
         "One doesn't simply play versus mode.\nFirst you must complete Electrodynamix.",
         "OK"
+    )->show();
+}
+
+// Developer access is tied to the logged-in Geometry Dash account, not the
+// editable local player-name setting. Only the account username iio103 is allowed.
+static bool isAuthorizedDeveloper() {
+    auto* account = GJAccountManager::sharedState();
+    return account && account->m_accountID > 0 && account->m_username == "iio103";
+}
+
+static void showDeveloperPanel() {
+    if (!isAuthorizedDeveloper()) return;
+
+    auto* stats = GameStatsManager::sharedState();
+    bool electrodynamixComplete = stats && stats->hasCompletedMainLevel(15);
+
+    // Keep the alert text as a compile-time string: gd::string does not
+    // provide std::string-style operator+= in the Android Geode bindings.
+    auto const* details = electrodynamixComplete
+        ? "Developer access: AUTHORIZED\n"
+          "Geometry Dash account: iio103\n"
+          "Versus unlock requirement: Electrodynamix\n"
+          "Electrodynamix status: COMPLETED\n"
+          "Versus test override: "
+          "Use RESET VERSUS UNLOCK TEST to preview the locked Keymaster dialogue.\n"
+          "Mod: Versus Mode v1.0.12"
+        : "Developer access: AUTHORIZED\n"
+          "Geometry Dash account: iio103\n"
+          "Versus unlock requirement: Electrodynamix\n"
+          "Electrodynamix status: NOT COMPLETED\n"
+          "Versus test override: "
+          "Use RESET VERSUS UNLOCK TEST to preview the locked Keymaster dialogue.\n"
+          "Mod: Versus Mode v1.0.12";
+
+    FLAlertLayer::create(
+        "VERSUS DEVELOPER PANEL",
+        details,
+        "CLOSE"
     )->show();
 }
 
@@ -79,8 +120,58 @@ class $modify(VersusCreatorLayer, CreatorLayer) {
         // Match the Versus slot at the far right of the first row in CreatorLayer.
         item->setPosition({size.width * 0.788f, size.height * 0.808f});
         menu->addChild(item);
+
+        // The developer entry is created only for the authenticated GD account.
+        if (isAuthorizedDeveloper()) {
+            auto* devSprite = ButtonSprite::create(
+                "DEV", 35, true, "goldFont.fnt", "GJ_button_04.png", 30.f, 0.7f
+            );
+            if (devSprite) {
+                auto* devItem = CCMenuItemSpriteExtra::create(
+                    devSprite, this, menu_selector(VersusCreatorLayer::onDeveloperPanel)
+                );
+                if (devItem) {
+                    devItem->setID("versus-developer-panel-button");
+                    devItem->setPosition({size.width * 0.16f, size.height * 0.91f});
+                    menu->addChild(devItem);
+                }
+            }
+
+            // This resets only the mod's temporary Versus unlock test state.
+            // It deliberately does not edit official level completion or stats.
+            auto* resetSprite = ButtonSprite::create(
+                "RESET VERSUS UNLOCK TEST", 25, true, "goldFont.fnt",
+                "GJ_button_05.png", 36.f, 0.55f
+            );
+            if (resetSprite) {
+                auto* resetItem = CCMenuItemSpriteExtra::create(
+                    resetSprite, this, menu_selector(VersusCreatorLayer::onResetVersusUnlockTest)
+                );
+                if (resetItem) {
+                    resetItem->setID("versus-reset-unlock-test-button");
+                    resetItem->setPosition({size.width * 0.16f, size.height * 0.84f});
+                    menu->addChild(resetItem);
+                }
+            }
+        }
+
         this->addChild(menu, 1000);
         return true;
+    }
+
+    void onDeveloperPanel(CCObject*) {
+        if (!isAuthorizedDeveloper()) return;
+        showDeveloperPanel();
+    }
+
+    void onResetVersusUnlockTest(CCObject*) {
+        if (!isAuthorizedDeveloper()) return;
+        g_forceVersusLockedForDev = true;
+        FLAlertLayer::create(
+            "VERSUS TEST RESET",
+            "The Versus unlock test is now locked. Press Versus to preview the Keymaster dialogue. Your actual Electrodynamix completion and Geometry Dash stats are unchanged. Restarting the game clears this temporary test override.",
+            "OK"
+        )->show();
     }
 
     void onVersus(CCObject*) {
