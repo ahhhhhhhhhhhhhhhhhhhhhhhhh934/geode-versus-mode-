@@ -2,9 +2,18 @@
 
 This document is the working feature plan for Versus Mode. A roadmap item is a goal, not a claim that the feature is already implemented.
 
-## Product direction
+## Geometry Dash version support
 
-Versus Mode should feel like a complete Geometry Dash competition hub: fast to enter, visually consistent with the game, useful with friends, and honest about online status. Keep the mod client focused on presentation, local preferences, match rules, and gameplay integration.
+- [x] Preserve the existing Geometry Dash 2.2081 target as the stable compatibility line.
+- [ ] Add Geometry Dash 2.2091 support without dropping 2.2081.
+- [ ] Produce separate .geode packages from the same source revision: one built with the Geode 5.x / GD 2.2081 toolchain and one with the Geode 6.x / GD 2.2091 toolchain.
+- [ ] Generate target-specific mod.json metadata at build time; never label a 2.2081 binary as 2.2091-compatible or vice versa.
+- [ ] Build and test Android64 for both game versions independently.
+- [ ] Port and validate source/API differences required by Geode 6 before declaring the 2.2091 build supported.
+- [ ] Check Globed dependency compatibility separately for each Geode/game-version line.
+- [ ] Keep release publication gated on successful builds for every platform/version package that the release claims to support.
+
+The two targets must remain separate build outputs because Geode mod metadata declares an exact Geometry Dash target per platform. The shared source code and repository remain the same; the resulting packages are version-specific.
 
 ## Multiplayer foundation
 
@@ -80,9 +89,9 @@ Versus Mode should feel like a complete Geometry Dash competition hub: fast to e
 ## Release gates
 
 A feature is ready to be called playable only after:
-1. The Android build succeeds.
-2. The UI path works in Geometry Dash.
-3. Two real clients can complete the flow through Globed.
+1. The Android build succeeds for the target version.
+2. The UI path works in the matching Geometry Dash version.
+3. Two real clients can complete the flow through a compatible Globed version.
 4. Disconnects, retries, and invalid states are handled.
 5. The feature's status is documented accurately.
 

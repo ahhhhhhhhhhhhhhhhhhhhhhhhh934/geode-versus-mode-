@@ -8,6 +8,8 @@
 #include "Protocol.hpp"
 
 #include <algorithm>
+#include <charconv>
+#include <limits>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -233,31 +235,41 @@ namespace VersusMatch {
     inline std::optional<MatchRecord> decodeRecord(std::string const& line) {
         if (line.empty()) return std::nullopt;
 
-        // Exactly 8 fields means exactly 7 separators — no more, no fewer.
-        size_t separators = 0;
-        for (char c : line) if (c == '|') ++separators;
-        if (separators != 7) return std::nullopt;
-
-        // Split on '|' into exactly 8 numeric fields.
-        int64_t fields[8];
-        int seen = 0;
+        // Exactly eight fields: reject missing, extra, or empty values.
+        int64_t fields[8] = {};
         size_t start = 0;
-        while (seen < 8) {
+        for (size_t index = 0; index < 8; ++index) {
             size_t bar = line.find('|', start);
-            std::string field = bar == std::string::npos
-                ? line.substr(start) : line.substr(start, bar - start);
-            if (field.empty()) return std::nullopt;
-            bool negative = field[0] == '-';
-            int64_t value = 0;
-            for (size_t i = negative ? 1 : 0; i < field.size(); ++i) {
-                if (field[i] < '0' || field[i] > '9') return std::nullopt;
-                value = value * 10 + (field[i] - '0');
+            bool last = index == 7;
+            if ((last && bar != std::string::npos) ||
+                (!last && bar == std::string::npos)) {
+                return std::nullopt;
             }
-            fields[seen++] = negative ? -value : value;
-            if (bar == std::string::npos) break;
-            start = bar + 1;
+
+            size_t finish = last ? line.size() : bar;
+            if (finish == start) return std::nullopt;
+            auto first = line.data() + start;
+            auto lastChar = line.data() + finish;
+            auto parsed = std::from_chars(first, lastChar, fields[index]);
+            if (parsed.ec != std::errc{} || parsed.ptr != lastChar) {
+                return std::nullopt;
+            }
+            start = finish + 1;
         }
-        if (seen != 8) return std::nullopt;
+
+        // Validate before narrowing. The previous parser could overflow
+        // signed integers and silently wrap negative/oversized values into
+        // the unsigned history fields.
+        if (fields[0] < 0 || fields[1] < 1 || fields[1] > 6 ||
+            fields[2] <= 0 || fields[2] > std::numeric_limits<int>::max() ||
+            fields[3] < 0 || fields[3] > std::numeric_limits<int>::max() ||
+            fields[4] < 1 || fields[4] > 5 ||
+            fields[5] < std::numeric_limits<int>::min() ||
+            fields[5] > std::numeric_limits<int>::max() ||
+            fields[6] < 0 || fields[6] > std::numeric_limits<uint32_t>::max() ||
+            fields[7] < 0 || fields[7] > 1000) {
+            return std::nullopt;
+        }
 
         MatchRecord r;
         r.timestamp = fields[0];
@@ -268,8 +280,6 @@ namespace VersusMatch {
         r.rankDelta = static_cast<int>(fields[5]);
         r.deaths = static_cast<uint32_t>(fields[6]);
         r.percentX10 = static_cast<uint16_t>(fields[7]);
-        if (r.mode < 1 || r.mode > 6) return std::nullopt;
-        if (static_cast<int>(r.outcome) < 1 || static_cast<int>(r.outcome) > 5) return std::nullopt;
         return r;
     }
 }

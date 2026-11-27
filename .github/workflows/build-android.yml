@@ -1,204 +1,116 @@
-# Re-triggered after GitHub Actions runner-assignment incident on 2026-11-11.
-name: Build Android and iOS Geode mods
-
+name: Versus Mode CI and Releases
 on:
   workflow_dispatch:
   push:
-    branches:
-      - '**'
-    tags:
-      - 'v*'
+    branches: ["**"]
+    tags: ["v*"]
   pull_request:
-    branches:
-      - '**'
-
+    branches: ["**"]
 permissions:
   contents: write
-
 jobs:
-  build-android64:
+  host-tests:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.bump.outputs.version }}
-      commit: ${{ steps.bump.outputs.commit }}
-      release: ${{ steps.bump.outputs.release }}
     steps:
-      - name: Check out source branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Build and run host unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in tests/test_*.cpp; do
+            g++ -std=c++20 -Wall -Wextra -Werror -Isrc "$test" -o "/tmp/$(basename "$test" .cpp)"
+          done
+          for test in tests/test_*.cpp; do
+            name="$(basename "$test" .cpp)"
+            "/tmp/$name"
+          done
+  build:
+    needs: host-tests
+    name: GD ${{ matrix.gd }} / Geode ${{ matrix.sdk }} / ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { gd: "2.2081", sdk: "5.11.2", target: Android64, runner: ubuntu-latest, artifact: Versus-Mode-GD-2.2081-Android64 }
+          - { gd: "2.2081", sdk: "5.11.2", target: iOS, runner: macos-latest, artifact: Versus-Mode-GD-2.2081-iOS }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.ref || (github.ref_type == 'tag' && github.event.repository.default_branch) || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Prepare release version
-        id: bump
-        shell: bash
+      - name: Generate target metadata
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF_TYPE: ${{ github.ref_type }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GD_VERSION: ${{ matrix.gd }}
+          GEODE_VERSION: ${{ matrix.sdk }}
         run: |
-          CURRENT="$(jq -r '.version' mod.json)"
-          if [[ ! "$CURRENT" =~ ^v[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
-            echo "::error::Invalid mod.json version: $CURRENT"
-            exit 1
-          fi
-
-          VERSION_PARTS="${CURRENT#v}"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_PARTS"
-          CMAKE_CURRENT="$(awk '/^project[(]/ { for (i=1;i<=NF;i++) if ($i=="VERSION") { sub(/\)/,"",$(i+1)); print $(i+1); exit}}' CMakeLists.txt)"
-          if [[ "$CMAKE_CURRENT" != "$MAJOR.$MINOR.$PATCH" ]]; then
-            echo "::error::Version mismatch: mod.json=$CURRENT, CMake=$CMAKE_CURRENT"
-            exit 1
-          fi
-
-          # PR and feature-branch runs validate/build only. Releases are made
-          # only from the default branch, tags, or an explicit manual run.
-          #
-          # Feature-branch and PR builds must never create or publish a release,
-          # but they must still run the Android build and upload the artifact.
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            NEXT="$CURRENT"
-            RELEASE_TARGET="$GITHUB_SHA"
-            RELEASE="false"
-          elif [[ "$REF_TYPE" == "tag" ]]; then
-            NEXT="$GITHUB_REF_NAME"
-            RELEASE_TARGET="$GITHUB_SHA"
-            RELEASE="true"
-          elif [[ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]]; then
-            NEXT="$CURRENT"
-            RELEASE_TARGET="$GITHUB_SHA"
-            RELEASE="false"
-          else
-            PATCH=$((PATCH + 1))
-            NEXT="v${MAJOR}.${MINOR}.${PATCH}"
-            jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
-            mv mod.json.tmp mod.json
-            sed -i "s/VERSION $MAJOR.$MINOR.$((PATCH - 1))/VERSION $MAJOR.$MINOR.$PATCH/" CMakeLists.txt
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add mod.json CMakeLists.txt
-            git commit -m "chore: bump release version to $NEXT [skip ci]"
-            RELEASE_TARGET="$(git rev-parse HEAD)"
-            git push origin "HEAD:$GITHUB_REF_NAME"
-            RELEASE="true"
-          fi
-
-          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
-          echo "commit=$RELEASE_TARGET" >> "$GITHUB_OUTPUT"
-          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
-          echo "Prepared version $NEXT"
-
-      - name: Validate release version
-        shell: bash
-        env:
-          VERSION: ${{ steps.bump.outputs.version }}
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          if [[ "$REF_TYPE" == "tag" ]]; then VERSION="$REF_NAME"; fi
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Invalid release version: $VERSION"
-            exit 1
-          fi
-
-      - name: Build Android64 Geode package
-        id: build
+          set -euo pipefail
+          jq --arg gd "$GD_VERSION" --arg geode "$GEODE_VERSION" '.geode = $geode | .gd.android = $gd | .gd.ios = $gd' mod.json > mod.json.tmp
+          mv mod.json.tmp mod.json
+      - name: Build Geode package
+        id: package
         uses: geode-sdk/build-geode-mod@main
         with:
           sdk: given
-          target: Android64
+          target: ${{ matrix.target }}
           path: .
           build-config: Release
-          android-min-sdk: '24'
-
-      - name: Upload Android package
-        uses: actions/upload-artifact@v4
+          android-min-sdk: "24"
+      - name: Verify package
+        env:
+          OUTPUT: ${{ steps.package.outputs.build-output }}
+        run: |
+          set -euo pipefail
+          find "$OUTPUT" -maxdepth 1 -type f -name '*.geode' -print -quit | grep -q .
+      - uses: actions/upload-artifact@v4
         with:
-          name: Versus-Mode-Android64
-          path: ${{ steps.build.outputs.build-output }}
+          name: ${{ matrix.artifact }}
+          path: ${{ steps.package.outputs.build-output }}/*.geode
           if-no-files-found: error
           retention-days: 90
-
-  build-ios:
-    runs-on: macos-latest
-    steps:
-      - name: Check out source branch
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          ref: ${{ github.event.pull_request.head.ref || (github.ref_type == 'tag' && github.event.repository.default_branch) || github.ref_name }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build iOS Geode package
-        id: build
-        uses: geode-sdk/build-geode-mod@main
-        with:
-          sdk: given
-          target: iOS
-          path: .
-          build-config: Release
-      - name: Upload iOS package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Versus-Mode-iOS
-          path: ${{ steps.build.outputs.build-output }}
-          if-no-files-found: error
-          retention-days: 90
-
   publish-release:
-    # Publish only when both platform builds pass and the release gate is enabled.
-    if: needs.build-android64.result == 'success' && needs.build-ios.result == 'success' && needs.build-android64.outputs.release == 'true' && github.event_name != 'pull_request'
-    needs: [build-android64, build-ios]
+    if: github.event_name != 'pull_request' && github.ref_type != 'tag' && github.ref_name == github.event.repository.default_branch
+    needs: [host-tests, build]
     runs-on: ubuntu-latest
     steps:
-      - name: Validate bumped release version
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - name: Prepare release version
         id: version
-        shell: bash
-        env:
-          VERSION: ${{ needs.build-android64.outputs.version }}
         run: |
-          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid release version: $VERSION"
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Download Android package
-        uses: actions/download-artifact@v4
+          set -euo pipefail
+          CURRENT="$(jq -r '.version' mod.json)"
+          [[ "$CURRENT" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT#v}"
+          CMAKE_CURRENT="$(awk '/^project[(]/ { for (i=1;i<=NF;i++) if ($i=="VERSION") { sub(/\)/,"",$(i+1)); print $(i+1); exit}}' CMakeLists.txt)"
+          [[ "$CMAKE_CURRENT" == "$MAJOR.$MINOR.$PATCH" ]]
+          PATCH=$((PATCH + 1))
+          NEXT="v$MAJOR.$MINOR.$PATCH"
+          jq --arg version "$NEXT" '.version = $version' mod.json > mod.json.tmp
+          mv mod.json.tmp mod.json
+          sed -i "s/VERSION $MAJOR.$MINOR.$((PATCH - 1))/VERSION $MAJOR.$MINOR.$PATCH/" CMakeLists.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mod.json CMakeLists.txt
+          git commit -m "chore: bump release version to $NEXT [skip ci]"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
         with:
-          name: Versus-Mode-Android64
-          path: release-assets/android
-      - name: Download iOS package
-        uses: actions/download-artifact@v4
-        with:
-          name: Versus-Mode-iOS
-          path: release-assets/ios
-
-      # Geode names both platform outputs "versus.mode.geode". Give each
-      # package a unique release asset name so GitHub cannot collapse one
-      # platform's upload into the other.
-      - name: Prepare uniquely named platform packages
-        shell: bash
-        run: |
-          ANDROID_PACKAGE="$(find release-assets/android -type f -name '*.geode' -print -quit)"
-          IOS_PACKAGE="$(find release-assets/ios -type f -name '*.geode' -print -quit)"
-          if [[ -z "$ANDROID_PACKAGE" || -z "$IOS_PACKAGE" ]]; then
-            echo "::error::Both Android64 and iOS Geode packages are required"
-            exit 1
-          fi
-          cp "$ANDROID_PACKAGE" release-assets/versus.mode.android64.geode
-          cp "$IOS_PACKAGE" release-assets/versus.mode.ios.geode
-
-      - name: Publish Android64 and iOS release packages
+          pattern: Versus-Mode-*
+          path: release-assets
+          merge-multiple: false
+      - name: Publish all compatibility packages
         uses: softprops/action-gh-release@v2
         with:
           name: Versus Mode ${{ steps.version.outputs.version }}
           tag_name: ${{ steps.version.outputs.version }}
-          target_commitish: ${{ needs.build-android64.outputs.commit }}
+          target_commitish: ${{ steps.version.outputs.commit }}
           generate_release_notes: true
-          files: |
-            release-assets/versus.mode.android64.geode
-            release-assets/versus.mode.ios.geode
+          files: release-assets/**/versus.mode.geode
           fail_on_unmatched_files: true
           make_latest: true

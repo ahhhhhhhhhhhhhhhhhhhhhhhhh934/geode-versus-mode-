@@ -133,14 +133,16 @@ namespace Versus {
         if (!Versus::globedApiAvailable()) return;
         // The Globed room's pinned level, when the owner set one.
         auto pinned = globed::api::room::getPinnedLevel();
-        int levelId = pinned.levelId();
-        if (levelId <= 0 || pinned == globed::SessionId{}) {
+        // Geode 5.11.2 / GD 2.2081 uses Globed's packed SessionId API.
+        // A missing or non-vanilla pinned level resolves to a non-positive level ID.
+        const int pinnedLevelId = pinned.levelId();
+        if (pinnedLevelId <= 0) {
             showInfo("MATCH SETUP", "PINNED LEVEL", "NO PINNED LEVEL",
                 "The room owner can pin a level in the Globed room.",
                 "Pin it there, or type a level ID above.");
             return;
         }
-        if (m_levelInput) m_levelInput->setString(fmt::format("{}", levelId));
+        if (m_levelInput) m_levelInput->setString(fmt::format("{}", pinnedLevelId));
     }
 
     void LobbyLayer::onLaunchMatch(CCObject*) {
