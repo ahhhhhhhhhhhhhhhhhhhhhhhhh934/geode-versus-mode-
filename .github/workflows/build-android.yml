@@ -33,8 +33,6 @@ jobs:
         include:
           - { gd: "2.2081", sdk: "5.11.2", target: Android64, runner: ubuntu-latest, artifact: Versus-Mode-GD-2.2081-Android64 }
           - { gd: "2.2081", sdk: "5.11.2", target: iOS, runner: macos-latest, artifact: Versus-Mode-GD-2.2081-iOS }
-          - { gd: "2.2091", sdk: "6.0.0", target: Android64, runner: ubuntu-latest, artifact: Versus-Mode-GD-2.2091-Android64 }
-          - { gd: "2.2091", sdk: "6.0.0", target: iOS, runner: macos-latest, artifact: Versus-Mode-GD-2.2091-iOS }
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
