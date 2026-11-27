@@ -193,6 +193,14 @@ static void testRecordCodec() {
     CHECK(!decodeRecord("1|2|3|4|5|6|7|8|9").has_value());
     CHECK(!decodeRecord("1|99|3|4|5|6|7|8").has_value()); // invalid mode
     CHECK(!decodeRecord("1|1|3|4|0|6|7|8").has_value());  // invalid outcome
+    CHECK(!decodeRecord("1|1|3|4|1|6|-7|8").has_value()); // negative deaths
+    CHECK(!decodeRecord("1|1|3|4|1|6|7|1001").has_value()); // impossible progress
+    CHECK(!decodeRecord("1|1|3|4|1|6|7|65536").has_value()); // narrowing overflow
+    CHECK(!decodeRecord("1|1|3|4|1|6|999999999999999999999999|8").has_value());
+    CHECK(!decodeRecord("-1|1|3|4|1|6|7|8").has_value()); // negative timestamp
+    CHECK(!decodeRecord("1|1|-3|4|1|6|7|8").has_value()); // invalid level id
+    CHECK(!decodeRecord("1|1|3|4|1|999999999999999999999|7|8").has_value());
+    CHECK(!decodeRecord("1|1|3|4|1|6|7|").has_value()); // empty final field
 }
 
 int main() {
