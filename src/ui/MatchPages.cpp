@@ -2,6 +2,7 @@
 #include "../core/GameModes.hpp"
 #include "../core/StatsStore.hpp"
 #include <Geode/ui/TextInput.hpp>
+#include <limits>
 
 // Pages that configure and describe matches: mode selection today, match
 // setup and results in the following PRs of the stack.
@@ -133,14 +134,14 @@ namespace Versus {
         if (!Versus::globedApiAvailable()) return;
         // The Globed room's pinned level, when the owner set one.
         auto pinned = globed::api::room::getPinnedLevel();
-        int levelId = pinned.levelId();
-        if (levelId <= 0 || pinned == globed::SessionId{}) {
+        if (pinned.isZero() || !pinned.isVanillaLevel() ||
+            pinned.level.id > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
             showInfo("MATCH SETUP", "PINNED LEVEL", "NO PINNED LEVEL",
                 "The room owner can pin a level in the Globed room.",
                 "Pin it there, or type a level ID above.");
             return;
         }
-        if (m_levelInput) m_levelInput->setString(fmt::format("{}", levelId));
+        if (m_levelInput) m_levelInput->setString(fmt::format("{}", pinned.level.id));
     }
 
     void LobbyLayer::onLaunchMatch(CCObject*) {
