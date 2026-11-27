@@ -32,11 +32,9 @@ endif()
 setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0-beta.1)
 
 include(FetchContent)
-if (GEODE_GD_VERSION VERSION_LESS "2.2090")
-    set(GLOBED_HEADERS_COMMIT 737d2211b6ce00119f752dc07d0d76d2700b6d08)
-else()
-    set(GLOBED_HEADERS_COMMIT 9ed14e33b826d18fe7b21052c1ffee07ce5d8967)
-endif()
+# This branch targets Geometry Dash 2.2081 / Geode 5.11.2 only.
+# Keep the Globed headers on the revision compatible with that SDK.
+set(GLOBED_HEADERS_COMMIT 737d2211b6ce00119f752dc07d0d76d2700b6d08)
 
 FetchContent_Declare(
     globed_headers
