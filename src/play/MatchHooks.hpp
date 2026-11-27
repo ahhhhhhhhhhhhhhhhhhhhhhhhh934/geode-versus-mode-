@@ -8,6 +8,22 @@
 
 using namespace geode::prelude;
 
+// Geometry Dash 2.2081 and 2.2091 expose different PlayLayer::init
+// signatures. Detect the SDK binding at compile time so one source supports
+// both without version-string guesses.
+template <class Layer>
+static bool initPlayLayerCompat(
+    Layer* layer, GJGameLevel* level, bool useReplay, bool dontCreateObjects
+) {
+    if constexpr (requires(Layer* candidate) {
+        candidate->init(level, useReplay, dontCreateObjects);
+    }) {
+        return layer->init(level, useReplay, dontCreateObjects);
+    } else {
+        return layer->init(level, dontCreateObjects);
+    }
+}
+
 // In-game Versus sync: hooks into PlayLayer only when a Versus match is
 // actually running, and an overlay that shows the live standings.
 namespace VersusPlay {
@@ -127,7 +143,7 @@ namespace VersusPlay {
 
 class $modify(VersusPlayLayer, PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
-        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
+        if (!initPlayLayerCompat(static_cast<PlayLayer*>(this), level, useReplay, dontCreateObjects)) return false;
         if (VersusPlay::matchActiveForLevel(level)) {
             // Reset local match state and show the live standings.
             VersusLobby::beginLocalPlay();
