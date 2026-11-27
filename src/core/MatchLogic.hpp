@@ -281,4 +281,5 @@ namespace VersusMatch {
         r.deaths = static_cast<uint32_t>(fields[6]);
         r.percentX10 = static_cast<uint16_t>(fields[7]);
         return r;
-    }}
+    }
+}
