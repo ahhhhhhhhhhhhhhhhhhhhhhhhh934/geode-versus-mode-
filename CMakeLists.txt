@@ -32,10 +32,16 @@ endif()
 setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0-beta.1)
 
 include(FetchContent)
+if (GEODE_GD_VERSION VERSION_LESS "2.2090")
+    set(GLOBED_HEADERS_COMMIT 737d2211b6ce00119f752dc07d0d76d2700b6d08)
+else()
+    set(GLOBED_HEADERS_COMMIT 9ed14e33b826d18fe7b21052c1ffee07ce5d8967)
+endif()
+
 FetchContent_Declare(
     globed_headers
     GIT_REPOSITORY https://github.com/GlobedGD/globed2.git
-    GIT_TAG 9ed14e33b826d18fe7b21052c1ffee07ce5d8967
+    GIT_TAG ${GLOBED_HEADERS_COMMIT}
     GIT_SHALLOW FALSE
 )
 FetchContent_GetProperties(globed_headers)
