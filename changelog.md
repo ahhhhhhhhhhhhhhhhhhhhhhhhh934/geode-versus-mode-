@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iPadOS compatibility preparation
+- Document that Geode's iOS arm64 .geode package is the shared Apple mobile package for compatible iPhone and iPad installations; no separate iPadOS binary target is used.
+- Add an iPad-specific real-device validation checklist for installation, orientation, touch targets, text legibility, and Globed compatibility.
+- Keep iPadOS support marked unverified until the package is tested on an actual iPad.
+
 ## v1.0.0 — First major release candidate
 - Rework the Versus lobby with a Geometry Dash Level Complete-inspired gold-trimmed presentation.
 - Add a dedicated Private Versus screen with live Globed connection and room detection.

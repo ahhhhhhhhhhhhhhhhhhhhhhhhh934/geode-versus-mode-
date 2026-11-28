@@ -1,13 +1,15 @@
 # Geode Versus Mode — 1.0.0
 
-Next release target: **v1.0.6** · Current package version: **v1.0.5** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64 and iOS
+Next release target: **v1.0.6** · Current package version: **v1.0.5** · Geometry Dash 2.2081 · Geode SDK 5.11.2 · Android64, iOS, and iPadOS
 
 ## Platform builds
 
-- Android64 and iOS packages are built independently in GitHub Actions.
-- The iOS target uses the official Geode iOS build target on a macOS runner.
-- iOS packages are distributed as Geode `.geode` mod packages; they are not standalone Geometry Dash apps.
-- The iOS build must pass CI and then be tested in Geometry Dash with the iOS Geode launcher and a compatible Globed installation before it is called playable.
+- Android64 and Apple mobile builds are built independently in GitHub Actions.
+- The Apple mobile build uses Geode's official **iOS arm64** target on a macOS runner. This is the shared iOS/iPadOS mod binary; Geode does not use a separate iPadOS target for .geode mods.
+- The same versus.mode.ios.geode package is intended for compatible iPhone and iPad installations. A separate renamed copy would not be a separate iPad build.
+- iPad compatibility still needs real-device verification with Geometry Dash, the Geode iOS launcher, and a compatible Globed installation before it can be called tested or playable on iPad.
+- See [iPadOS support and test plan](docs/IPADOS.md).
+- Apple platform packages are distributed as Geode .geode mod packages; they are not standalone Geometry Dash apps.
 
 ## Multiplayer architecture
 
@@ -26,8 +28,8 @@ Next release target: **v1.0.6** · Current package version: **v1.0.5** · Geomet
 
 Globed provides multiplayer networking and room infrastructure, but it does not automatically provide Versus Mode's custom cross-room matchmaking queue, ready-check, mode rules, or authoritative results. Those features must be implemented as a Globed-native protocol before they can be advertised as working. This release does not require external Supabase configuration and does not claim a global automatic queue is live.
 
-The room/session handoff and synchronized gameplay rules still require runtime validation on Android with Globed 2.3.0 beta or newer.
+The room/session handoff and synchronized gameplay rules still require runtime validation on Android with Globed 2.3.0 beta or newer. iPadOS compatibility likewise remains pending a real iPad test.
 
 ## Development
 
-The complete feature plan and release gates are tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The complete feature plan and release gates are tracked in [docs/ROADMAP.md](docs/ROADMAP.md).
