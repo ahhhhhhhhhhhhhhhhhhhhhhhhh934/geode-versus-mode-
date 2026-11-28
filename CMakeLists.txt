@@ -29,7 +29,7 @@ endif()
 # The exact version here is verified by the runtime check; it must satisfy the
 # comparison the mod publishes in mod.json. Use the exact Globed version
 # the mod was built against, not a comparator.
-setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.3.0-beta.1)
+setup_geode_mod(${PROJECT_NAME} EXTERNALS dankmeme.globed2:2.2.2)
 
 include(FetchContent)
 # This branch targets Geometry Dash 2.2081 / Geode 5.11.2 only.
